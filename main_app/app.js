@@ -59,6 +59,8 @@ var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
 var currentSong = 'Err';
 var pastProgress = 0;
 var song_queue = new Queue();
+var access_token = null;
+var refresh_token = null;
 
 /**
  * Generates a random string containing numbers and letters
@@ -84,24 +86,31 @@ app.use(express.static(__dirname + '/public'))
    .use(cookieParser());
 
 app.get('/login', function(req, res) {
+  if(access_token != null) {
+    var temp = 0
+  }
+  else {
+    console.log('Login begin')
+    //console.log(res)
+    var state = generateRandomString(16);
+    res.cookie(stateKey, state);
 
-  var state = generateRandomString(16);
-  res.cookie(stateKey, state);
-
-  // your application requests authorization
-  var scope = 'user-read-private user-read-email user-modify-playback-state user-read-playback-state';
-  res.redirect('https://accounts.spotify.com/authorize?' +
-    querystring.stringify({
-      response_type: 'code',
-      client_id: client_id,
-      scope: scope,
-      redirect_uri: redirect_uri,
-      state: state
-    }));
+    // your application requests authorization
+    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-playback-state';
+    res.redirect('https://accounts.spotify.com/authorize?' +
+      querystring.stringify({
+        response_type: 'code',
+        client_id: client_id,
+        scope: scope,
+        redirect_uri: redirect_uri,
+        state: state
+      }));
+  }
 });
 
 app.get('/callback', function(req, res) {
-
+  console.log('Callback called')
+  //console.log(req)
   // your application requests refresh and access tokens
   // after checking the state parameter
 
@@ -132,8 +141,8 @@ app.get('/callback', function(req, res) {
     request.post(authOptions, function(error, response, body) {
       if (!error && response.statusCode === 200) {
 
-        var access_token = body.access_token,
-            refresh_token = body.refresh_token;
+        access_token = body.access_token;
+        refresh_token = body.refresh_token;
 
         var options = {
           url: 'https://api.spotify.com/v1/me',
