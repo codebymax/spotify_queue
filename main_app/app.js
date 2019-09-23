@@ -45,16 +45,28 @@ class Queue {
   }
 }
 
+var generateRandomString = function(length) {
+  var text = '';
+  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+
+  for (var i = 0; i < length; i++) {
+    text += possible.charAt(Math.floor(Math.random() * possible.length));
+  }
+  return text;
+};
+
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node');
+var passport = require('passport');
+var SpotifyStrategy = require('passport-spotify').Strategy;
 
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1'; // Your client id
 var client_secret = 'b190d465849346dc84f0d794a1bfa4dd'; // Your secret
-var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var redirect_uri = 'http://localhost:8888/auth/spotify/callback'; // Your redirect uri
 
 var currentSong = 'Err';
 var pastProgress = 0;
@@ -62,11 +74,57 @@ var song_queue = new Queue();
 var access_token = null;
 var refresh_token = null;
 
+var scopes = ['user-read-private', 'user-read-email'];
+var state = generateRandomString(16);
+
+var credentials = {
+  clientId: client_id,
+  clientSecret: client_secret,
+  redirectUri: redirect_uri
+};
+
+passport.use(new SpotifyStrategy({
+  clientID: client_id,
+  clientSecret: client_secret,
+  callbackURL: redirect_uri
+},
+function(accessToken, refreshToken, expires_in, profile, done) {
+  console.log(accessToken);
+  /*
+  User.findOrCreate({ spotifyId: profile.id }, function(err, user) {
+    return done(err, user);
+  });
+  */
+}));
+
+var app = express();
+
+app.use(express.static(__dirname + '/public'))
+   .use(cors())
+   .use(cookieParser());
+
+app.get('/auth/spotify', passport.authenticate('spotify'), function(req, res) {
+  //this function will not be called
+});
+
+app.get('/auth/spotify/callback', 
+  passport.authenticate('spotify', {failureRedirect: '/login' }),
+  function(req, res) {
+    console.log('success')
+  })
+
+app.get('/login', function(req, res) {
+  console.log('fail rip')
+})
+console.log('Listening on 8888');
+app.listen(8888);
 /**
  * Generates a random string containing numbers and letters
  * @param  {number} length The length of the string
  * @return {string} The generated string
  */
+
+/*
 var generateRandomString = function(length) {
   var text = '';
   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -343,3 +401,4 @@ app.get('/search_song', function(req, res) {
 
 console.log('Listening on 8888');
 app.listen(8888);
+*/
