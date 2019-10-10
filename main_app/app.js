@@ -1,12 +1,3 @@
-/**
- * This is an example of a basic node.js script that performs
- * the Authorization Code oAuth2 flow to authenticate against
- * the Spotify Accounts.
- *
- * For more information, read
- * https://developer.spotify.com/web-api/authorization-guide/#authorization_code_flow
- */
-
 class Queue {
   constructor() {
       this.items = [];
@@ -45,28 +36,16 @@ class Queue {
   }
 }
 
-var generateRandomString = function(length) {
-  var text = '';
-  var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-
-  for (var i = 0; i < length; i++) {
-    text += possible.charAt(Math.floor(Math.random() * possible.length));
-  }
-  return text;
-};
-
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node');
-var passport = require('passport');
-var SpotifyStrategy = require('passport-spotify').Strategy;
 
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1'; // Your client id
 var client_secret = 'b190d465849346dc84f0d794a1bfa4dd'; // Your secret
-var redirect_uri = 'http://localhost:8888/auth/spotify/callback'; // Your redirect uri
+var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
 
 var currentSong = 'Err';
 var pastProgress = 0;
@@ -74,57 +53,11 @@ var song_queue = new Queue();
 var access_token = null;
 var refresh_token = null;
 
-var scopes = ['user-read-private', 'user-read-email'];
-var state = generateRandomString(16);
-
-var credentials = {
-  clientId: client_id,
-  clientSecret: client_secret,
-  redirectUri: redirect_uri
-};
-
-passport.use(new SpotifyStrategy({
-  clientID: client_id,
-  clientSecret: client_secret,
-  callbackURL: redirect_uri
-},
-function(accessToken, refreshToken, expires_in, profile, done) {
-  console.log(accessToken);
-  /*
-  User.findOrCreate({ spotifyId: profile.id }, function(err, user) {
-    return done(err, user);
-  });
-  */
-}));
-
-var app = express();
-
-app.use(express.static(__dirname + '/public'))
-   .use(cors())
-   .use(cookieParser());
-
-app.get('/auth/spotify', passport.authenticate('spotify'), function(req, res) {
-  //this function will not be called
-});
-
-app.get('/auth/spotify/callback', 
-  passport.authenticate('spotify', {failureRedirect: '/login' }),
-  function(req, res) {
-    console.log('success')
-  })
-
-app.get('/login', function(req, res) {
-  console.log('fail rip')
-})
-console.log('Listening on 8888');
-app.listen(8888);
 /**
  * Generates a random string containing numbers and letters
  * @param  {number} length The length of the string
  * @return {string} The generated string
  */
-
-/*
 var generateRandomString = function(length) {
   var text = '';
   var possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -154,7 +87,7 @@ app.get('/login', function(req, res) {
     res.cookie(stateKey, state);
 
     // your application requests authorization
-    var scope = 'user-read-private user-read-email user-modify-playback-state user-read-playback-state';
+    var scope = 'user-library-read user-read-private user-read-email user-modify-playback-state user-read-playback-state';
     res.redirect('https://accounts.spotify.com/authorize?' +
       querystring.stringify({
         response_type: 'code',
@@ -309,6 +242,41 @@ app.get('/get_playing', function(req, res) {
             json: true
           };
           
+          if(song_queue.isEmpty()) {
+            //code to add random song to the queue
+            var getTracks = {
+              url: 'https://api.spotify.com/v1/me/tracks',
+              headers: { 'Authorization': 'Bearer ' + access_token },
+              json: true
+            };
+          
+            request.get(getTracks, function(error, response, body) {
+              console.log(response.statusCode);
+              console.log(body)
+              if (!error && response.statusCode === 200) {
+                var max =  body.total - 1;
+                var min = 0;
+                var random = Math.floor(Math.random() * (+max - +min)) + +min; 
+
+                getTracks = {
+                  url: 'https://api.spotify.com/v1/me/tracks',
+                  headers: { 'Authorization': 'Bearer ' + access_token },
+                  query: {
+                    'offset': random
+                  },
+                  json: true
+                };
+
+                request.get(getTracks, function(error, response, body) {
+                  console.log(response.statusCode);
+                  console.log(body)
+                  //if (!error && response.statusCode === 200) {
+                    
+                  //}
+                });
+              }
+            });
+          }
           request.put(nextOptions, function(error, response, body) {
             console.log(response.statusCode);
             if (!error && response.statusCode === 204) {
@@ -352,7 +320,7 @@ app.get('/change_song', function(req, res) {
     },
     json: true
   };
-
+  
   request.put(playOptions, function(error, response, body) {
     console.log(response.statusCode);
     if (!error && response.statusCode === 204) {
@@ -384,21 +352,39 @@ app.get('/search_song', function(req, res) {
   .then(function(data) {
     console.log(data.body);
     if( data.body.tracks.items.length < 1 ) {
-      song_uri = 'spotify:track:7GhIk7Il098yCjg4BQjzvb';
+      console.log('Search failed! No results!')
     }
     else {
       var song_uri = data.body.tracks.items[0].uri;
+      song_queue.enqueue(song_uri);
+      console.log('Uri: ', song_uri);
+      res.send({
+        'song_uri': song_uri
+      });
     }
-    song_queue.enqueue(song_uri);
-    console.log('Uri: ', song_uri);
-    res.send({
-      'song_uri': song_uri
-    });
   }, function(err) {
     console.error(err);
   });
 });
 
+app.get('/randomize', function(req, res) {
+  var access_token = req.query.access_token;
+  console.log(access_token);
+
+  var getTracks = {
+    url: 'https://api.spotify.com/v1/me/tracks',
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    body: {
+    },
+    json: true
+  };
+
+  request.get(getTracks, function(error, response, body) {
+    console.log(response.statusCode);
+    if (!error && response.statusCode === 204) {
+      console.log(body)
+    }
+  });
+});
 console.log('Listening on 8888');
 app.listen(8888);
-*/
