@@ -52,6 +52,8 @@ var pastProgress = 0;
 var song_queue = new Queue();
 var access_token = null;
 var refresh_token = null;
+var context_uri = null;
+var queued_up = false;
 
 /**
  * Generates a random string containing numbers and letters
@@ -195,40 +197,82 @@ app.get('/get_playing', function(req, res) {
     json: true
   };
 
+  var player = {
+    url: 'https://api.spotify.com/v1/me/player',
+    headers: { 'Authorization': 'Bearer ' + access_token },
+    json: true
+  };
+
   request.get(playingOptions, function(error, response, body) {
+    if( !error && response.statusCode === 204 ) {
+      console.log('Listen to something')
+      res.send({
+        'success': 'nothing playing'
+      });
+    }
     if (!error && response.statusCode === 200) {
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
+
+      request.get(player, function(error, response, body) {
+        if( body.context != null ) {
+          context_uri = body.context.uri;
+        } 
+      })
       if( (name != currentSong && currentSong != 'Err') || (body.progress_ms == 0 && pastProgress > 0) ) {
         console.log('Song end!');
         currentSong = 'Err';
         pastProgress = body.progress_ms;
-        if(song_queue.isEmpty())
-        {
-          var defaultOptions = {
-            url: 'https://api.spotify.com/v1/me/player/play',
+
+        if(song_queue.isEmpty() && queued_up) {
+          var shuffle = {
+            url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
             headers: { 'Authorization': 'Bearer ' + access_token },
-            body: {
-              "context_uri": 'spotify:playlist:6mEx4FB4zZhjPnDReDJ7eV',
-              "offset": {
-                "position": 0
-              },
-              "position_ms": 0
-            },
             json: true
           };
 
-          request.put(defaultOptions, function(error, response, body) {
-            console.log(response.statusCode);
+          request.put(shuffle, function(error, response, body) {
             if (!error && response.statusCode === 204) {
-              var resp = "Change successful"
-              res.send({
-                'success': resp
-              });
+              console.log("Shuffled!");
+              if( context_uri != null ) {
+                console.log(context_uri);
+                var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
+                console.log(playlist_id);
+                var get_tracks = {
+                  url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
+                  headers: { 'Authorization': 'Bearer ' + access_token },
+                  json: true
+                };
+
+                request.get(get_tracks, function(error, response, body) {
+                  if (!error && response.statusCode === 200) {
+                    var num_songs = body.total;
+                    var index = Math.floor(Math.random() * num_songs);
+
+                    var resume_playback = {
+                      url: 'https://api.spotify.com/v1/me/player/play',
+                      headers: { 'Authorization': 'Bearer ' + access_token },
+                      body: {
+                        "context_uri": context_uri,
+                        "offset": {
+                          "position": index
+                        },
+                        "position_ms": 0
+                      },
+                      json: true
+                    };
+
+                    request.put(resume_playback, function(error, response, body) {
+                      console.log(response.statusCode);
+                      console.log("playback resumed")
+                    });
+                  }
+                });
+              }
             }
           });
         }
-        else {
+        if(!song_queue.isEmpty()) {
           var nextOptions = {
             url: 'https://api.spotify.com/v1/me/player/play',
             headers: { 'Authorization': 'Bearer ' + access_token },
@@ -242,41 +286,6 @@ app.get('/get_playing', function(req, res) {
             json: true
           };
           
-          if(song_queue.isEmpty()) {
-            //code to add random song to the queue
-            var getTracks = {
-              url: 'https://api.spotify.com/v1/me/tracks',
-              headers: { 'Authorization': 'Bearer ' + access_token },
-              json: true
-            };
-          
-            request.get(getTracks, function(error, response, body) {
-              console.log(response.statusCode);
-              console.log(body)
-              if (!error && response.statusCode === 200) {
-                var max =  body.total - 1;
-                var min = 0;
-                var random = Math.floor(Math.random() * (+max - +min)) + +min; 
-
-                getTracks = {
-                  url: 'https://api.spotify.com/v1/me/tracks',
-                  headers: { 'Authorization': 'Bearer ' + access_token },
-                  query: {
-                    'offset': random
-                  },
-                  json: true
-                };
-
-                request.get(getTracks, function(error, response, body) {
-                  console.log(response.statusCode);
-                  console.log(body)
-                  //if (!error && response.statusCode === 200) {
-                    
-                  //}
-                });
-              }
-            });
-          }
           request.put(nextOptions, function(error, response, body) {
             console.log(response.statusCode);
             if (!error && response.statusCode === 204) {
@@ -285,6 +294,11 @@ app.get('/get_playing', function(req, res) {
                 'success': resp
               });
             }
+          });
+        }
+        else {
+          res.send({
+            'success': 'smile and wave boys'
           });
         }
       }
@@ -356,6 +370,9 @@ app.get('/search_song', function(req, res) {
     }
     else {
       var song_uri = data.body.tracks.items[0].uri;
+      if( !queued_up ) { //if nothing has been queued yet, Put the program into queue mode
+        queued_up = true;
+      }
       song_queue.enqueue(song_uri);
       console.log('Uri: ', song_uri);
       res.send({
