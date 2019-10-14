@@ -80,7 +80,11 @@ app.use(express.static(__dirname + '/public'))
 
 app.get('/login', function(req, res) {
   if(access_token != null) {
-    var temp = 0
+    res.redirect('/#' +
+      querystring.stringify({
+        access_token: access_token,
+        refresh_token: refresh_token
+      }));
   }
   else {
     console.log('Login begin')
@@ -198,7 +202,7 @@ app.get('/refresh_token', function(req, res) {
 app.get('/get_playing', function(req, res) {
   //get the current playing track and detect song change
   //this endpoint is hit every second
-  var access_token = req.query.access_token;
+  //access_token = req.query.access_token;
   
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
@@ -396,8 +400,13 @@ app.get('/search_song', function(req, res) {
 console.log('Listening on 8888');
 app.listen(8888);
 
-var test_login = {
-  url: 'http://localhost:8888/login',
-  json: true
-} 
+var checkSong = { url: 'http://localhost:8888/get_playing' };
+
+function checkSongEnd() { 
+  if(access_token != null) {
+    request.get(checkSong);
+  }
+}
+
+setInterval(checkSongEnd, 1000);
 //request.get(test_login)

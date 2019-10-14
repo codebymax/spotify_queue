@@ -14,28 +14,42 @@
         white-space: nowrap;
         width: 500px;
       }
+
+      body {
+        background-color:#343a40!important
+      }
     </style>
   </head>
 
-  <body>
-    <div class="container">
+  <body class="bg-dark text-white">
+    <div class="container bg-dark text-white">
       <div id="login">
-        <div style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+        <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
           <a href="/login" class="btn btn-success btn-lg" id='load'>Log in with Spotify</a>
         </div>
       </div>
       <div id="loggedin">
-        <div id="user-profile">
+        <div id="user-profile" style="display: none;">
         </div>
-        <div id="oauth">
+        <div id="oauth" style="display: none;">
         </div>
-        <button class="btn btn-default text-center" id="obtain-new-token">Obtain new token using the refresh token</button>
-        <br><br>
-        <div id="test">
-          </div>
-        <button class="btn btn-default" id="play-new">Play a new song</button>
+        <button class="btn btn-default text-center" id="obtain-new-token" style="display: none;">Obtain new token using the refresh token</button>
+        
+        <div style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+          <div id="search">
+            </div>
+          <br>
+          <button class="btn btn-default" id="play-new" style="display: none;">Play a new song</button>
+        </div>
       </div>
     </div>
+
+    <script id="search-template" type="text/x-handlebars-template">
+      <dl class="dl-horizontal">
+          <input class="form-control form-control-lg" id="search_str" type="text" name="search">
+          <p id="search_info"></p>
+      </dl>
+    </script>
 
     <script id="user-profile-template" type="text/x-handlebars-template">
       <h1>Logged in as {{display_name}}</h1>
@@ -62,14 +76,6 @@
       <dl class="dl-horizontal">
         <dt>Access token</dt><dd class="text-overflow">{{access_token}}</dd>
         <dt>Refresh token</dt><dd class="text-overflow">{{refresh_token}}</dd>
-      </dl>
-    </script>
-
-    <script id="test-template" type="text/x-handlebars-template">
-      <h2>API Test area</h2>
-      <dl class="dl-horizontal">
-          <input id="search_str" type="text" name="search">
-          <p id="search_info"></p>
       </dl>
     </script>
 
@@ -116,9 +122,9 @@
             oauthTemplate = Handlebars.compile(oauthSource),
             oauthPlaceholder = document.getElementById('oauth');
         
-        var testSource = document.getElementById('test-template').innerHTML,
-            testTemplate = Handlebars.compile(testSource),
-            testPlaceholder = document.getElementById('test');
+        var searchSource = document.getElementById('search-template').innerHTML,
+            searchTemplate = Handlebars.compile(searchSource),
+            searchPlaceholder = document.getElementById('search');
 
         var params = getHashParams();
 
@@ -136,7 +142,7 @@
               refresh_token: refresh_token
             });
 
-            testPlaceholder.innerHTML = testTemplate({ });
+            searchPlaceholder.innerHTML = searchTemplate({ });
 
             $.ajax({
                 url: 'https://api.spotify.com/v1/me',
@@ -156,6 +162,14 @@
               $('#loggedin').hide();
           }
 
+          document.getElementById("search_str")
+            .addEventListener("keyup", function(event) {
+            event.preventDefault();
+            if (event.keyCode === 13) {
+                document.getElementById("play-new").click();
+            }
+          });
+
           document.getElementById('obtain-new-token').addEventListener('click', function() {
             $.ajax({
               url: '/refresh_token',
@@ -171,7 +185,7 @@
             });
           }, false);
 
-          window.setInterval(checkSongEnd, 1000);
+          //window.setInterval(checkSongEnd, 1000);
 
           document.getElementById('play-new').addEventListener('click', function() {
             var search_str = document.getElementById("search_str").value
