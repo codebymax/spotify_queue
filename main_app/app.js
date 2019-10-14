@@ -43,10 +43,9 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node');
 const bufferFrom = require('buffer-from')
-
-var client_id = '8aca4f76dd574a1cb9793de66dbc99c1'; // Your client id
-var client_secret = 'b190d465849346dc84f0d794a1bfa4dd'; // Your secret
-var redirect_uri = 'http://localhost:8888/callback'; // Your redirect uri
+var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
+  client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
+  redirect_uri =  'http://localhost:8888/callback';
 
 var currentSong = 'Err';
 var pastProgress = 0;
@@ -86,9 +85,10 @@ app.get('/login', function(req, res) {
   else {
     console.log('Login begin')
     //console.log(res)
+    
     var state = generateRandomString(16);
     res.cookie(stateKey, state);
-
+    //console.log(state)
     // your application requests authorization
     var scope = 'user-library-read user-read-private user-read-email user-modify-playback-state user-read-playback-state';
     res.redirect('https://accounts.spotify.com/authorize?' +
@@ -99,11 +99,17 @@ app.get('/login', function(req, res) {
         redirect_uri: redirect_uri,
         state: state
       }));
+    
+    var scopes = ['user-library-read', 'user-read-private', 
+      'user-read-email', 'user-modify-playback-state', 
+      'user-read-playback-state'];
+
   }
 });
 
 app.get('/callback', function(req, res) {
   console.log('Callback called')
+  //console.log(req)
   //console.log(req)
   // your application requests refresh and access tokens
   // after checking the state parameter
@@ -194,11 +200,6 @@ app.get('/get_playing', function(req, res) {
   //this endpoint is hit every second
   var access_token = req.query.access_token;
   
-  var test = {
-    url: 'http://localhost:8888/print_4',
-    json: true
-  } 
-  request.get(test)
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
     headers: { 'Authorization': 'Bearer ' + access_token },
@@ -392,28 +393,11 @@ app.get('/search_song', function(req, res) {
   });
 });
 
-app.get('/randomize', function(req, res) {
-  var access_token = req.query.access_token;
-  console.log(access_token);
-
-  var getTracks = {
-    url: 'https://api.spotify.com/v1/me/tracks',
-    headers: { 'Authorization': 'Bearer ' + access_token },
-    body: {
-    },
-    json: true
-  };
-
-  request.get(getTracks, function(error, response, body) {
-    console.log(response.statusCode);
-    if (!error && response.statusCode === 204) {
-      console.log(body)
-    }
-  });
-});
-
-app.get('/print_4', function(req, res) {
-  console.log('4');
-});
 console.log('Listening on 8888');
 app.listen(8888);
+
+var test_login = {
+  url: 'http://localhost:8888/login',
+  json: true
+} 
+//request.get(test_login)
