@@ -95,7 +95,10 @@
           return hashParams;
         }
         
-        function checkSongEnd() {
+        /*Function checkSongEnd()
+          hit the get_playing endpoint in app.js
+        */
+        function checkSongEnd() { 
           $.ajax({
             url: '/get_playing',
             data: {

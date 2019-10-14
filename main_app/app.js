@@ -190,8 +190,15 @@ app.get('/refresh_token', function(req, res) {
 });
 
 app.get('/get_playing', function(req, res) {
+  //get the current playing track and detect song change
+  //this endpoint is hit every second
   var access_token = req.query.access_token;
-
+  
+  var test = {
+    url: 'http://localhost:8888/print_4',
+    json: true
+  } 
+  request.get(test)
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
     headers: { 'Authorization': 'Bearer ' + access_token },
@@ -211,7 +218,7 @@ app.get('/get_playing', function(req, res) {
         'success': 'nothing playing'
       });
     }
-    if (!error && response.statusCode === 200) {
+    else if (!error && response.statusCode === 200) {
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
 
@@ -403,6 +410,10 @@ app.get('/randomize', function(req, res) {
       console.log(body)
     }
   });
+});
+
+app.get('/print_4', function(req, res) {
+  console.log('4');
 });
 console.log('Listening on 8888');
 app.listen(8888);
