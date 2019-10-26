@@ -43,9 +43,11 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node');
 const bufferFrom = require('buffer-from')
+var url = 'https://asiaqueue.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
-  redirect_uri =  'http://localhost:8888/callback';
+  //redirect_uri =  'http://localhost:8888/callback';
+  redirect_uri = url + '/callback';
 
 var currentSong = 'Err';
 var pastProgress = 0;
@@ -238,51 +240,62 @@ app.get('/get_playing', function(req, res) {
         pastProgress = body.progress_ms;
 
         if(song_queue.isEmpty() && queued_up) {
-          var shuffle = {
-            url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
+          var pause = {
+            url: 'https://api.spotify.com/v1/me/player/pause',
             headers: { 'Authorization': 'Bearer ' + access_token },
             json: true
           };
 
-          request.put(shuffle, function(error, response, body) {
-            if (!error && response.statusCode === 204) {
-              console.log("Shuffled!");
-              if( context_uri != null ) {
-                console.log(context_uri);
-                var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
-                console.log(playlist_id);
-                var get_tracks = {
-                  url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
-                  headers: { 'Authorization': 'Bearer ' + access_token },
-                  json: true
-                };
+          request.put(pause, function(error, response, body) {
+            var shuffle = {
+              url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
+              headers: { 'Authorization': 'Bearer ' + access_token },
+              json: true
+            };
 
-                request.get(get_tracks, function(error, response, body) {
-                  if (!error && response.statusCode === 200) {
-                    var num_songs = body.total;
-                    var index = Math.floor(Math.random() * num_songs);
+            request.put(shuffle, function(error, response, body) {
+              if (!error && response.statusCode === 204) {
+                console.log("Shuffled!");
+                if( context_uri != null ) {
+                  console.log(context_uri);
+                  var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
+                  console.log(playlist_id);
+                  var get_tracks = {
+                    url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
+                    headers: { 'Authorization': 'Bearer ' + access_token },
+                    json: true
+                  };
 
-                    var resume_playback = {
-                      url: 'https://api.spotify.com/v1/me/player/play',
-                      headers: { 'Authorization': 'Bearer ' + access_token },
-                      body: {
-                        "context_uri": context_uri,
-                        "offset": {
-                          "position": index
+                  request.get(get_tracks, function(error, response, body) {
+                    if (!error && response.statusCode === 200) {
+                      var num_songs = body.total;
+                      var index = Math.floor(Math.random() * num_songs);
+
+                      var resume_playback = {
+                        url: 'https://api.spotify.com/v1/me/player/play',
+                        headers: { 'Authorization': 'Bearer ' + access_token },
+                        body: {
+                          "context_uri": context_uri,
+                          "offset": {
+                            "position": index
+                          },
+                          "position_ms": 0
                         },
-                        "position_ms": 0
-                      },
-                      json: true
-                    };
+                        json: true
+                      };
 
-                    request.put(resume_playback, function(error, response, body) {
-                      console.log(response.statusCode);
-                      console.log("playback resumed")
-                    });
-                  }
-                });
+                      request.put(resume_playback, function(error, response, body) {
+                        console.log(response.statusCode);
+                        console.log("playback resumed")
+                      });
+                      res.send({
+                        'success': 'playback resumed'
+                      });
+                    }
+                  });
+                }
               }
-            }
+            });
           });
         }
         if(!song_queue.isEmpty()) {
@@ -397,10 +410,16 @@ app.get('/search_song', function(req, res) {
   });
 });
 
-console.log('Listening on 8888');
-app.listen(8888);
+// Listen to the specified port, or 8080 otherwise
+const PORT = process.env.PORT || 8888;
+app.listen(PORT, () => {
+  console.log(`Server listening on port ${PORT}...`);
+});
 
-var checkSong = { url: 'http://localhost:8888/get_playing' };
+//redirect_uri = url + ':' + PORT + '/callback';
+console.log(redirect_uri)
+//var checkSong = { url: 'http://localhost:8888/get_playing' };
+var checkSong = { url: url + '/get_playing' };
 
 function checkSongEnd() { 
   if(access_token != null) {
