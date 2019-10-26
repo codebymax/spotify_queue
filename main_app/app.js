@@ -240,62 +240,52 @@ app.get('/get_playing', function(req, res) {
         pastProgress = body.progress_ms;
 
         if(song_queue.isEmpty() && queued_up) {
-          var pause = {
-            url: 'https://api.spotify.com/v1/me/player/pause',
+          var shuffle = {
+            url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
             headers: { 'Authorization': 'Bearer ' + access_token },
             json: true
           };
 
-          request.put(pause, function(error, response, body) {
-            var shuffle = {
-              url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
-              headers: { 'Authorization': 'Bearer ' + access_token },
-              json: true
-            };
+          request.put(shuffle, function(error, response, body) {
+            if (!error && response.statusCode === 204) {
+              console.log("Shuffled!");
+              if( context_uri != null ) {
+                console.log(context_uri);
+                var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
+                console.log(playlist_id);
+                var get_tracks = {
+                  url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
+                  headers: { 'Authorization': 'Bearer ' + access_token },
+                  json: true
+                };
 
-            request.put(shuffle, function(error, response, body) {
-              if (!error && response.statusCode === 204) {
-                console.log("Shuffled!");
-                if( context_uri != null ) {
-                  console.log(context_uri);
-                  var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
-                  console.log(playlist_id);
-                  var get_tracks = {
-                    url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
-                    headers: { 'Authorization': 'Bearer ' + access_token },
-                    json: true
-                  };
+                request.get(get_tracks, function(error, response, body) {
+                  if (!error && response.statusCode === 200) {
+                    var num_songs = body.total;
+                    var index = Math.floor(Math.random() * num_songs);
 
-                  request.get(get_tracks, function(error, response, body) {
-                    if (!error && response.statusCode === 200) {
-                      var num_songs = body.total;
-                      var index = Math.floor(Math.random() * num_songs);
-
-                      var resume_playback = {
-                        url: 'https://api.spotify.com/v1/me/player/play',
-                        headers: { 'Authorization': 'Bearer ' + access_token },
-                        body: {
-                          "context_uri": context_uri,
-                          "offset": {
-                            "position": index
-                          },
-                          "position_ms": 0
+                    var resume_playback = {
+                      url: 'https://api.spotify.com/v1/me/player/play',
+                      headers: { 'Authorization': 'Bearer ' + access_token },
+                      body: {
+                        "context_uri": context_uri,
+                        "offset": {
+                          "position": index
                         },
-                        json: true
-                      };
+                        "position_ms": 0
+                      },
+                      json: true
+                    };
 
-                      request.put(resume_playback, function(error, response, body) {
-                        console.log(response.statusCode);
-                        console.log("playback resumed")
-                      });
-                      res.send({
-                        'success': 'playback resumed'
-                      });
-                    }
-                  });
-                }
+                    request.put(resume_playback, function(error, response, body) {
+                      console.log(response.statusCode);
+                      console.log("playback resumed")
+                      queued_up = false;
+                    });
+                  }
+                });
               }
-            });
+            }
           });
         }
         if(!song_queue.isEmpty()) {
@@ -375,7 +365,6 @@ app.get('/change_song', function(req, res) {
 app.get('/search_song', function(req, res) {
   // changing the song thats playing currently
   
-  var access_token = req.query.access_token;
   var search_str = req.query.search_str;
   console.log(access_token);
   console.log(search_str);
