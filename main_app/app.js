@@ -1,4 +1,4 @@
-class Queue {
+class Queue { //queue data structure used to store song uris
   constructor() {
       this.items = [];
   }
@@ -41,7 +41,7 @@ var request = require('request'); // "Request" library
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
-var SpotifyWebApi = require('spotify-web-api-node');
+var SpotifyWebApi = require('spotify-web-api-node'); 
 const bufferFrom = require('buffer-from')
 var url = 'https://asiaqueue.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
@@ -328,36 +328,6 @@ app.get('/get_playing', function(req, res) {
           'duration': body.item.duration_ms
         });
       }
-    }
-  });
-});
-
-app.get('/change_song', function(req, res) {
-  var access_token = req.query.access_token;
-  var song_uri = req.query.song_uri;
-  if (song_uri == 'null') {
-    song_uri = 'null';
-  }
-  var playOptions = {
-    url: 'https://api.spotify.com/v1/me/player/play',
-    headers: { 'Authorization': 'Bearer ' + access_token },
-    body: {
-      "uris": [song_uri],
-      "offset": {
-        "position": 0
-      },
-      "position_ms": 0
-    },
-    json: true
-  };
-  
-  request.put(playOptions, function(error, response, body) {
-    console.log(response.statusCode);
-    if (!error && response.statusCode === 204) {
-      var success = "Change successful"
-      res.send({
-        'success': success
-      });
     }
   });
 });
