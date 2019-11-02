@@ -177,6 +177,9 @@ app.get('/callback', function(req, res) {
   }
 });
 
+/**
+ * Endpoint used to generate new refresh token
+ */
 app.get('/refresh_token', function(req, res) {
 
   // requesting access token from refresh token
