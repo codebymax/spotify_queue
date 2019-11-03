@@ -49,6 +49,7 @@ var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   //redirect_uri =  'http://localhost:8888/callback';
   redirect_uri = url + '/callback';
 
+var counter = 0;
 var currentSong = 'Err';
 var pastProgress = 0;
 var song_queue = new Queue();
@@ -80,6 +81,9 @@ app.use(express.static(__dirname + '/public'))
    .use(cors())
    .use(cookieParser());
 
+/**
+ * Endpoint that is initially called by webpage upon clicking of the login button
+ */
 app.get('/login', function(req, res) {
   if(access_token != null) {
     res.redirect('/#' +
@@ -113,6 +117,9 @@ app.get('/login', function(req, res) {
   }
 });
 
+/**
+ * Callbakc endpoint that is hit by Spotify after login is initiated
+ */
 app.get('/callback', function(req, res) {
   console.log('Callback called')
   //console.log(req)
@@ -204,11 +211,15 @@ app.get('/refresh_token', function(req, res) {
   });
 });
 
+/**
+ * Primary endpoint for the app.
+ * Checks the current playing song
+ */
 app.get('/get_playing', function(req, res) {
   //get the current playing track and detect song change
   //this endpoint is hit every second
-  //access_token = req.query.access_token;
-  
+  counter++;
+
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
     headers: { 'Authorization': 'Bearer ' + access_token },
@@ -231,18 +242,18 @@ app.get('/get_playing', function(req, res) {
     else if (!error && response.statusCode === 200) {
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
-
-      request.get(player, function(error, response, body) {
-        if( body.context != null ) {
-          context_uri = body.context.uri;
-        } 
-      })
+      if( body.context != null || ( !queued_up && counter % 15 == 0)) {
+        request.get(player, function(error, response, body) {
+            context_uri = body.context.uri;
+        })
+      }
       if( (name != currentSong && currentSong != 'Err') || (body.progress_ms == 0 && pastProgress > 0) ) {
         console.log('Song end!');
         currentSong = 'Err';
         pastProgress = body.progress_ms;
 
         if(song_queue.isEmpty() && queued_up) {
+          queued_up = false;
           var shuffle = {
             url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
             headers: { 'Authorization': 'Bearer ' + access_token },
@@ -335,6 +346,13 @@ app.get('/get_playing', function(req, res) {
   });
 });
 
+/**
+ * 
+ * Endpoint used by webpage and alexa skill to search for a song and add it to the queue
+ * Takes in a search string and sends the string to Spotify
+ * Spotify sends back the top result and the uri for that song is added to the queue
+ * 
+ */
 app.get('/search_song', function(req, res) {
   // changing the song thats playing currently
   
