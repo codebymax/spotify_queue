@@ -57,6 +57,7 @@ var access_token = null;
 var refresh_token = null;
 var context_uri = null;
 var queued_up = false;
+var state = 0;
 
 /**
  * Generates a random string containing numbers and letters
@@ -234,17 +235,22 @@ app.get('/get_playing', function(req, res) {
 
   request.get(playingOptions, function(error, response, body) {
     if( !error && response.statusCode === 204 ) {
+      state = 0; //no song playing
       console.log('Listen to something')
       res.send({
         'success': 'nothing playing'
       });
     }
     else if (!error && response.statusCode === 200) {
+      state = 1; //there is a song playing but not queued
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
-      if( body.context != null || ( !queued_up && counter % 15 == 0)) {
+      if( !queued_up && counter % 15 == 0 ) {
         request.get(player, function(error, response, body) {
-            context_uri = body.context.uri;
+            if( body.context != null) {
+              context_uri = body.context.uri;
+            }
+            console.log(context_uri)
         })
       }
       if( (name != currentSong && currentSong != 'Err') || (body.progress_ms == 0 && pastProgress > 0) ) {
@@ -265,39 +271,58 @@ app.get('/get_playing', function(req, res) {
               console.log("Shuffled!");
               if( context_uri != null ) {
                 console.log(context_uri);
-                var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
-                console.log(playlist_id);
-                var get_tracks = {
-                  url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
-                  headers: { 'Authorization': 'Bearer ' + access_token },
-                  json: true
-                };
+                if(context_uri.includes('playlist')) {
+                  var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
+                  console.log(playlist_id);
+                  var get_tracks = {
+                    url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
+                    headers: { 'Authorization': 'Bearer ' + access_token },
+                    json: true
+                  };
 
-                request.get(get_tracks, function(error, response, body) {
-                  if (!error && response.statusCode === 200) {
-                    var num_songs = body.total;
-                    var index = Math.floor(Math.random() * num_songs);
+                  request.get(get_tracks, function(error, response, body) {
+                    if (!error && response.statusCode === 200) {
+                      var num_songs = body.total;
+                      var index = Math.floor(Math.random() * num_songs);
 
-                    var resume_playback = {
-                      url: 'https://api.spotify.com/v1/me/player/play',
-                      headers: { 'Authorization': 'Bearer ' + access_token },
-                      body: {
-                        "context_uri": context_uri,
-                        "offset": {
-                          "position": index
+                      var resume_playback = {
+                        url: 'https://api.spotify.com/v1/me/player/play',
+                        headers: { 'Authorization': 'Bearer ' + access_token },
+                        body: {
+                          "context_uri": context_uri,
+                          "offset": {
+                            "position": index
+                          },
+                          "position_ms": 0
                         },
-                        "position_ms": 0
-                      },
-                      json: true
-                    };
+                        json: true
+                      };
 
-                    request.put(resume_playback, function(error, response, body) {
-                      console.log(response.statusCode);
-                      console.log("playback resumed")
-                      queued_up = false;
-                    });
-                  }
-                });
+                      request.put(resume_playback, function(error, response, body) {
+                        console.log(response.statusCode);
+                        console.log("playback resumed")
+                        queued_up = false;
+                      });
+                    }
+                  });
+                }
+                else {
+                  var resume_playback = {
+                    url: 'https://api.spotify.com/v1/me/player/play',
+                    headers: { 'Authorization': 'Bearer ' + access_token },
+                    body: {
+                      "context_uri": context_uri,
+                      "position_ms": 0
+                    },
+                    json: true
+                  };
+
+                  request.put(resume_playback, function(error, response, body) {
+                    console.log(response.statusCode);
+                    console.log("playback resumed")
+                    queued_up = false;
+                  });
+                }
               }
             }
           });
@@ -400,6 +425,11 @@ app.listen(PORT, () => {
 console.log(redirect_uri)
 //var checkSong = { url: 'http://localhost:8888/get_playing' };
 var checkSong = { url: url + '/get_playing' };
+var refreshJSON = { url: url + '/refresh_token', 
+                    body: { 
+                      'refresh_token': refresh_token
+                    }
+};
 
 function checkSongEnd() { 
   if(access_token != null) {
@@ -407,5 +437,13 @@ function checkSongEnd() {
   }
 }
 
-setInterval(checkSongEnd, 1000);
+function refresh_key() {
+  if(access_token != null) {
+    request.get(refreshJSON, function(error, response, body) {
+
+    });
+  }
+}
+setInterval(checkSongEnd, 1000); //checkSongEnd every second
+//setInterval(refresh_key, 60000); //refreshKey every 1 minutes
 //request.get(test_login)
