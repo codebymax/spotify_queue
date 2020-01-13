@@ -43,7 +43,7 @@ var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node'); 
 const bufferFrom = require('buffer-from')
-var url = 'https://asiaqueue.appspot.com';
+var url = 'https://alexaq.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
   //redirect_uri =  'http://localhost:8888/callback';
@@ -438,12 +438,15 @@ function checkSongEnd() {
 }
 
 function refresh_key() {
-  if(access_token != null) {
+  if(access_token != null && counter > 10) {
+    console.log("Before: " + access_token)
     request.get(refreshJSON, function(error, response, body) {
-
+      console.log("Refreshed" + err);
+      console.log("After: " + access_token);
     });
   }
 }
 setInterval(checkSongEnd, 1000); //checkSongEnd every second
+//setInterval(refresh_key, 60000)
 //setInterval(refresh_key, 60000); //refreshKey every 1 minutes
 //request.get(test_login)
