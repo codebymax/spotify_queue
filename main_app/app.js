@@ -55,8 +55,6 @@ var song_queue = new Queue();
 var access_token = null;
 var refresh_token = null;
 var context_uri = null;
-var queued_up = false;
-var state = 0;
 
 /**
  * Generates a random string containing numbers and letters
@@ -244,7 +242,7 @@ app.get('/get_playing', function(req, res) {
       state = 1; //there is a song playing but not queued
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
-      if( !queued_up && counter % 15 == 0 ) {
+      if( song_queue.isEmpty() && counter % 15 == 0 ) {
         request.get(player, function(error, response, body) {
             if( body.context != null) {
               context_uri = body.context.uri;
@@ -257,8 +255,7 @@ app.get('/get_playing', function(req, res) {
         currentSong = 'Err';
         pastProgress = body.progress_ms;
 
-        if(song_queue.isEmpty() && queued_up) {
-          queued_up = false;
+        if(song_queue.isEmpty()) {
           var shuffle = {
             url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
             headers: { 'Authorization': 'Bearer ' + access_token },
@@ -300,7 +297,6 @@ app.get('/get_playing', function(req, res) {
                       request.put(resume_playback, function(error, response, body) {
                         console.log(response.statusCode);
                         console.log("playback resumed")
-                        queued_up = false;
                       });
                     }
                   });
@@ -319,7 +315,6 @@ app.get('/get_playing', function(req, res) {
                   request.put(resume_playback, function(error, response, body) {
                     console.log(response.statusCode);
                     console.log("playback resumed")
-                    queued_up = false;
                   });
                 }
               }
@@ -400,9 +395,6 @@ app.get('/search_song', function(req, res) {
     }
     else {
       var song_uri = data.body.tracks.items[0].uri;
-      if( !queued_up ) { //if nothing has been queued yet, Put the program into queue mode
-        queued_up = true;
-      }
       song_queue.enqueue(song_uri);
       console.log('Uri: ', song_uri);
       res.send({
