@@ -46,7 +46,6 @@ const bufferFrom = require('buffer-from')
 var url = 'https://alexaq.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
-  //redirect_uri =  'http://localhost:8888/callback';
   redirect_uri = url + '/callback';
 
 var counter = 0;
