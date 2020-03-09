@@ -4,7 +4,7 @@
     <title>Spotify queue</title>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
     <style type="text/css">
-      #login, #loggedin {
+      #spotify_login, #loggedin {
         display: none;
       }
       
@@ -23,7 +23,7 @@
 
   <body class="bg-dark text-white">
     <div class="container bg-dark text-white">
-      <div id="login">
+      <div id="spotify_login">
         <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
           <a href="/login" class="btn btn-success btn-lg" id='load'>Log in with Spotify</a>
         </div>
@@ -141,13 +141,13 @@
                 success: function(response) {
                   userProfilePlaceholder.innerHTML = userProfileTemplate(response);
 
-                  $('#login').hide();
+                  $('#spotify_login').hide();
                   $('#loggedin').show();
                 }
             });
           } else {
               // render initial screen
-              $('#login').show();
+              $('#spotify_login').show();
               $('#loggedin').hide();
           }
 
