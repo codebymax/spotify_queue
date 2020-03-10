@@ -38,6 +38,8 @@ class Queue { //queue data structure used to store song uris
 
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
+var admin = require('firebase-admin'); //firebase-admin library
+var serviceAccount = require('C:/Users/Amish Cyborg/Dropbox/Projects/spotify_queue/alexaq-firebase-adminsdk-udajg-736b571d1a.json');
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
@@ -47,6 +49,11 @@ var url = 'https://alexaq.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
   redirect_uri = url + '/callback';
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+  databaseURL: "https://alexaq.firebaseio.com"
+});
 
 var counter = 0;
 var currentSong = 'Err';
@@ -81,6 +88,9 @@ app.use(express.static(__dirname + '/public'))
    .use(cors())
    .use(cookieParser());
 
+app.get('/user_login', function(req, res) {
+
+});
 /**
  * Endpoint that is initially called by webpage upon clicking of the login button
  */

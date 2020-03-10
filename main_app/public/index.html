@@ -3,8 +3,10 @@
   <head>
     <title>Spotify queue</title>
     <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-firestore.js"></script>
     <style type="text/css">
-      #spotify_login, #loggedin {
+      #login, #spotify_login, #loggedin {
         display: none;
       }
       
@@ -23,6 +25,11 @@
 
   <body class="bg-dark text-white">
     <div class="container bg-dark text-white">
+      <div id="login" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+        <input class="form-control form-control-lg" id="username" type="text" name="user"><br>
+        <input class="form-control form-control-lg" id="password" type="password" name="pass"><br>
+        <a class="btn btn-success btn-lg" id="logged">Log in</a>
+      </div>
       <div id="spotify_login">
         <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
           <a href="/login" class="btn btn-success btn-lg" id='load'>Log in with Spotify</a>
@@ -102,7 +109,50 @@
           }
           return hashParams;
         }
+        var auth_check = false
+        function tryLogin() {
+          var username = document.getElementById("username").value
+          var password = document.getElementById("password").value
 
+          let usersRef = db.collection('users')
+          let query = usersRef.where('username', '==', username).get()
+              .then(function(querySnapshot) {
+                console.log(querySnapshot)
+                console.log(querySnapshot.empty.valueOf())
+                if(querySnapshot.empty.valueOf()) {
+                  console.log("win")
+                  return 1
+                }
+              });
+        }
+
+        firebase.initializeApp({
+            apiKey: 'AIzaSyA1F1_j8OXWo76RdO4rg9qCC0HF-n-Kg1A',
+            authDomain: 'alexaq.firebaseapp.com',
+            projectId: 'alexaq'
+        });
+
+        var db = firebase.firestore();
+
+        document.getElementById('logged').onclick = function() {
+          var username = document.getElementById("username").value
+          var password = document.getElementById("password").value
+          let usersRef = db.collection('users')
+
+          let query = usersRef.where('username', '==', username).where('password', '==', password).get()
+              .then(function(querySnapshot) {
+                console.log(querySnapshot)
+                if(!querySnapshot.empty) {
+                  console.log("true")
+                  $('#login').hide();
+                  $('#spotify_login').show();
+                  $('#loggedin').hide();
+                }
+                else {
+                  console.log("false")
+                }
+              });
+        }
         var userProfileSource = document.getElementById('user-profile-template').innerHTML,
             userProfileTemplate = Handlebars.compile(userProfileSource),
             userProfilePlaceholder = document.getElementById('user-profile');
@@ -141,13 +191,15 @@
                 success: function(response) {
                   userProfilePlaceholder.innerHTML = userProfileTemplate(response);
 
+                  $('#login').hide();
                   $('#spotify_login').hide();
                   $('#loggedin').show();
                 }
             });
           } else {
               // render initial screen
-              $('#spotify_login').show();
+              $('#login').show();
+              $('#spotify_login').hide();
               $('#loggedin').hide();
           }
 
