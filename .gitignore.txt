@@ -1,0 +1,2 @@
+/main_app/alexaq-firebase-adminsdk-udajg-736b571d1a
+/main_app/key.txt

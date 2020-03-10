@@ -39,7 +39,7 @@ class Queue { //queue data structure used to store song uris
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var admin = require('firebase-admin'); //firebase-admin library
-var serviceAccount = require('C:/Users/Amish Cyborg/Dropbox/Projects/spotify_queue/alexaq-firebase-adminsdk-udajg-736b571d1a.json');
+var serviceAccount = require(__dirname + '/alexaq-firebase-adminsdk-udajg-736b571d1a.json');
 var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');

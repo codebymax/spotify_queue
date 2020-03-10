@@ -125,14 +125,19 @@
                 }
               });
         }
-
-        firebase.initializeApp({
-            apiKey: 'AIzaSyA1F1_j8OXWo76RdO4rg9qCC0HF-n-Kg1A',
+        
+        const keyUrl = "/Users/max/Dropbox/Projects/spotify_queue/main_app/key.txt"
+        fetch(keyUrl).then(function(text) {
+          console.log(text)
+          firebase.initializeApp({
+            apiKey: text,
             authDomain: 'alexaq.firebaseapp.com',
             projectId: 'alexaq'
-        });
+          })
+          var db = firebase.firestore();
+        })
 
-        var db = firebase.firestore();
+        
 
         document.getElementById('logged').onclick = function() {
           var username = document.getElementById("username").value
