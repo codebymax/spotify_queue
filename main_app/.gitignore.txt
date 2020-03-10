@@ -1,2 +1,3 @@
-alexaq-firebase-adminsdk-udajg-736b571d1a
+alexaq-firebase-adminsdk-udajg-736b571d1a.json
+
 key.txt
