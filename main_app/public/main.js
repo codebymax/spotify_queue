@@ -119,37 +119,41 @@ var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:tra
     } else {
         console.log(access_token, auth_check)
         if (!access_token && !auth_check) {
-        // render initial screen
-        $('#login').show();
-        $('#spotify_login').hide();
-        $('#loggedin').hide();
-        if(!access_token && auth_check) {
-        $('#login').hide();
-        $('#spotify_login').hide();
-        $('#loggedin').hide();
+            // render initial screen
+            $('#create').hide();
+            $('#login').show();
+            $('#spotify_login').hide();
+            $('#loggedin').hide();
         }
-        } else {
-        // render oauth info
-        oauthPlaceholder.innerHTML = oauthTemplate({
-            access_token: access_token,
-            refresh_token: refresh_token
-        });
+        if(!access_token && auth_check) {
+            $('#create').hide();
+            $('#login').hide();
+            $('#spotify_login').hide();
+            $('#loggedin').hide();
+        }
+        else {
+            // render oauth info
+            oauthPlaceholder.innerHTML = oauthTemplate({
+                access_token: access_token,
+                refresh_token: refresh_token
+            });
 
-        searchPlaceholder.innerHTML = searchTemplate({ });
+            searchPlaceholder.innerHTML = searchTemplate({ });
 
-        $.ajax({
-            url: 'https://api.spotify.com/v1/me',
-            headers: {
-                'Authorization': 'Bearer ' + access_token
-            },
-            success: function(response) {
-                userProfilePlaceholder.innerHTML = userProfileTemplate(response);
+            $.ajax({
+                url: 'https://api.spotify.com/v1/me',
+                headers: {
+                    'Authorization': 'Bearer ' + access_token
+                },
+                success: function(response) {
+                    userProfilePlaceholder.innerHTML = userProfileTemplate(response);
 
-                $('#login').hide();
-                $('#spotify_login').hide();
-                $('#loggedin').show();
-            }
-        });
+                    $('#create').hide();
+                    $('#login').hide();
+                    $('#spotify_login').hide();
+                    $('#loggedin').show();
+                }
+            });
         }
 
         document.getElementById("search_str")
