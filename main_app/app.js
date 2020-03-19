@@ -44,7 +44,7 @@ var cors = require('cors');
 var querystring = require('querystring');
 var cookieParser = require('cookie-parser');
 var SpotifyWebApi = require('spotify-web-api-node'); 
-const bufferFrom = require('buffer-from')
+const bufferFrom = require('buffer-from');
 var url = 'https://alexaq.appspot.com';
 var client_id = '8aca4f76dd574a1cb9793de66dbc99c1',
   client_secret = 'b190d465849346dc84f0d794a1bfa4dd',
@@ -59,6 +59,7 @@ var counter = 0;
 var currentSong = 'Err';
 var pastProgress = 0;
 var song_queue = new Queue();
+var user_queue = new Queue();
 var access_token = null;
 var refresh_token = null;
 var context_uri = null;
@@ -91,10 +92,12 @@ app.use(express.static(__dirname + '/public'))
 app.get('/user_login', function(req, res) {
 
 });
+
 /**
  * Endpoint that is initially called by webpage upon clicking of the login button
  */
 app.get('/login', function(req, res) {
+  user_queue.enqueue(req.query.user);
   if(access_token != null) {
     res.redirect('/#' +
       querystring.stringify({
@@ -182,7 +185,8 @@ app.get('/callback', function(req, res) {
         res.redirect('/#' +
           querystring.stringify({
             access_token: access_token,
-            refresh_token: refresh_token
+            refresh_token: refresh_token,
+            user: user_queue.dequeue()
           }));
       } else {
         res.redirect('/#' +

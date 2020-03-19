@@ -1,7 +1,6 @@
-var username = ""
+var username = "";
 var currentSong = 'Err';
 var pastProgress = 0;
-var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:track:6VWnV3to6fZdaLQyhhLPRE'];
 
 (function() {
     /**
@@ -28,6 +27,7 @@ var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:tra
 
     var db = firebase.firestore();
 
+    document.getElementById('load').href = "/login?user=maw1"
     document.getElementById('logged').onclick = function() {
         username = document.getElementById("username").value
         var password = document.getElementById("password").value
@@ -63,32 +63,32 @@ var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:tra
         var pass = document.getElementById('createPassword').value
         var cPass = document.getElementById('confirmPassword').value
         if (pass == cPass) {
-        let usr = usersRef.doc(user).get()
+            usersRef.doc(user).get()
             .then(function(documentSnapshot) {
-            if(documentSnapshot.exists) {
-                document.getElementById('createError').innerHTML = "Username taken"
-            }
-            else {
-                usersRef.doc(user).set({
-                access_token: "",
-                context_uri: "",
-                counter: 0,
-                currentSong: "",
-                password: pass,
-                pastProgress: 0,
-                queued_up: false,
-                refresh_token: "",
-                song_queue: []
-                })
-                .then(function() {
-                username = user
-                $('#create').hide();
-                $('#login').hide();
-                $('#spotify_login').show();
-                $('#loggedin').hide();
-                $('#error').hide();
-                })
-            }
+                if(documentSnapshot.exists) {
+                    document.getElementById('createError').innerHTML = "Username taken"
+                }
+                else {
+                    usersRef.doc(user).set({
+                        access_token: "",
+                        context_uri: "",
+                        counter: 0,
+                        currentSong: "",
+                        password: pass,
+                        pastProgress: 0,
+                        queued_up: false,
+                        refresh_token: "",
+                        song_queue: []
+                    })
+                    .then(function() {
+                    username = user
+                    $('#create').hide();
+                    $('#login').hide();
+                    $('#spotify_login').show();
+                    $('#loggedin').hide();
+                    $('#error').hide();
+                    })
+                }
             })
         }
         else {
@@ -113,6 +113,8 @@ var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:tra
     var access_token = params.access_token,
         refresh_token = params.refresh_token,
         error = params.error;
+
+    username = params.user
 
     if (error) {
         alert('There was an error during the authentication');
@@ -152,6 +154,22 @@ var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:tra
                     $('#login').hide();
                     $('#spotify_login').hide();
                     $('#loggedin').show();
+                    console.log(params)
+                    let usersRef = db.collection('users')
+                    usersRef.doc(username).get()
+                        .then(function(documentSnapshot) {
+                            usersRef.doc(username).set({
+                                access_token: access_token,
+                                context_uri: documentSnapshot.get("context_uri"),
+                                counter: documentSnapshot.get("counter"),
+                                currentSong: documentSnapshot.get("currentSong"),
+                                password: documentSnapshot.get("password"),
+                                pastProgress: documentSnapshot.get("pastProgress"),
+                                queued_up: documentSnapshot.get("queued_up"),
+                                refresh_token: refresh_token,
+                                song_queue: documentSnapshot.get("song_queue")
+                            })
+                        })
                 }
             });
         }
