@@ -6,7 +6,7 @@
     <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-firestore.js"></script>
     <style type="text/css">
-      #login, #spotify_login, #loggedin {
+      #login, #spotify_login, #loggedin, #create, #error {
         display: none;
       }
       
@@ -26,10 +26,24 @@
   <body class="bg-dark text-white">
     <div class="container bg-dark text-white">
       <div id="login" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
-        <input class="form-control form-control-lg" id="username" type="text" name="user"><br>
-        <input class="form-control form-control-lg" id="password" type="password" name="pass"><br>
+        <h2 style="color: antiquewhite;">Log in to your account</h2><br><br>
+        <h4 id="error" style="color: #C70039">Login failed!</h4>
+        <input class="form-control form-control-lg" id="username" type="text" name="user" placeholder="Username"><br>
+        <input class="form-control form-control-lg" id="password" type="password" name="pass" placeholder="Password"><br>
         <a class="btn btn-success btn-lg" id="logged">Log in</a>
+        <h6 style="color: antiquewhite; font-size: larger;">or</h6>
+        <a class="btn btn-success btn-lg" id="new">Create account</a>
       </div>
+
+      <div id="create" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+        <h2 style="color: antiquewhite;">Create account</h2><br><br>
+        <h4 id="createError" style="color: #C70039"></h4>
+        <input class="form-control form-control-lg" id="createUsername" type="text" name="user" placeholder="Username"><br>
+        <input class="form-control form-control-lg" id="createPassword" type="password" name="pass" placeholder="Password"><br>
+        <input class="form-control form-control-lg" id="confirmPassword" type="password" name="pass" placeholder="Confirm Password"><br>
+        <a class="btn btn-success btn-lg" id="sendUserPass">Create</a>
+      </div>
+
       <div id="spotify_login">
         <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
           <a href="/login" class="btn btn-success btn-lg" id='load'>Log in with Spotify</a>
@@ -54,7 +68,7 @@
 
     <script id="search-template" type="text/x-handlebars-template">
       <dl class="dl-horizontal">
-          <input class="form-control form-control-lg" id="search_str" type="text" name="search">
+          <input class="form-control form-control-lg" id="search_str" type="text" name="search" placeholder="Search for a song">
           <p id="search_info"></p>
       </dl>
     </script>
@@ -89,163 +103,7 @@
 
     <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script>
-      var currentSong = 'Err';
-      var pastProgress = 0;
-      var song_queue = ['africa', 'spotify:track:2tznHmp70DxMyr2XhWLOW0', 'spotify:track:6VWnV3to6fZdaLQyhhLPRE'];
-      
-      (function() {
-        /**
-         * Obtains parameters from the hash of the URL
-         * @return Object
-         */
-        
-        function getHashParams() {
-          var hashParams = {};
-          var e, r = /([^&;=]+)=?([^&;]*)/g,
-              q = window.location.hash.substring(1);
-          while ( e = r.exec(q)) {
-             hashParams[e[1]] = decodeURIComponent(e[2]);
-          }
-          return hashParams;
-        }
-        var auth_check = false
-        function tryLogin() {
-          var username = document.getElementById("username").value
-          var password = document.getElementById("password").value
-
-          let usersRef = db.collection('users')
-          let query = usersRef.where('username', '==', username).get()
-              .then(function(querySnapshot) {
-                console.log(querySnapshot)
-                console.log(querySnapshot.empty.valueOf())
-                if(querySnapshot.empty.valueOf()) {
-                  console.log("win")
-                  return 1
-                }
-              });
-        }
-        
-        const keyUrl = "/Users/max/Dropbox/Projects/spotify_queue/main_app/key.txt"
-        fetch(keyUrl).then(function(text) {
-          console.log(text)
-          firebase.initializeApp({
-            apiKey: text,
-            authDomain: 'alexaq.firebaseapp.com',
-            projectId: 'alexaq'
-          })
-          var db = firebase.firestore();
-        })
-
-        
-
-        document.getElementById('logged').onclick = function() {
-          var username = document.getElementById("username").value
-          var password = document.getElementById("password").value
-          let usersRef = db.collection('users')
-
-          let query = usersRef.where('username', '==', username).where('password', '==', password).get()
-              .then(function(querySnapshot) {
-                console.log(querySnapshot)
-                if(!querySnapshot.empty) {
-                  console.log("true")
-                  $('#login').hide();
-                  $('#spotify_login').show();
-                  $('#loggedin').hide();
-                }
-                else {
-                  console.log("false")
-                }
-              });
-        }
-        var userProfileSource = document.getElementById('user-profile-template').innerHTML,
-            userProfileTemplate = Handlebars.compile(userProfileSource),
-            userProfilePlaceholder = document.getElementById('user-profile');
-
-        var oauthSource = document.getElementById('oauth-template').innerHTML,
-            oauthTemplate = Handlebars.compile(oauthSource),
-            oauthPlaceholder = document.getElementById('oauth');
-        
-        var searchSource = document.getElementById('search-template').innerHTML,
-            searchTemplate = Handlebars.compile(searchSource),
-            searchPlaceholder = document.getElementById('search');
-
-        var params = getHashParams();
-
-        var access_token = params.access_token,
-            refresh_token = params.refresh_token,
-            error = params.error;
-
-        if (error) {
-          alert('There was an error during the authentication');
-        } else {
-          if (access_token) {
-            // render oauth info
-            oauthPlaceholder.innerHTML = oauthTemplate({
-              access_token: access_token,
-              refresh_token: refresh_token
-            });
-
-            searchPlaceholder.innerHTML = searchTemplate({ });
-
-            $.ajax({
-                url: 'https://api.spotify.com/v1/me',
-                headers: {
-                  'Authorization': 'Bearer ' + access_token
-                },
-                success: function(response) {
-                  userProfilePlaceholder.innerHTML = userProfileTemplate(response);
-
-                  $('#login').hide();
-                  $('#spotify_login').hide();
-                  $('#loggedin').show();
-                }
-            });
-          } else {
-              // render initial screen
-              $('#login').show();
-              $('#spotify_login').hide();
-              $('#loggedin').hide();
-          }
-
-          document.getElementById("search_str")
-            .addEventListener("keyup", function(event) {
-            event.preventDefault();
-            if (event.keyCode === 13) {
-                document.getElementById("play-new").click();
-            }
-          });
-
-          document.getElementById('obtain-new-token').addEventListener('click', function() {
-            $.ajax({
-              url: '/refresh_token',
-              data: {
-                'refresh_token': refresh_token
-              }
-            }).done(function(data) {
-              access_token = data.access_token;
-              oauthPlaceholder.innerHTML = oauthTemplate({
-                access_token: access_token,
-                refresh_token: refresh_token
-              });
-            });
-          }, false);
-
-          document.getElementById('play-new').addEventListener('click', function() {
-            var search_str = document.getElementById("search_str").value
-            document.getElementById("search_str").value = ""
-            var song_uri = 'null';
-            
-            $.ajax({
-              url: '/search_song', //what part of the app to call 
-              data: {
-                'search_str': search_str
-              }
-            });
-          }, false);
-        }
-      })();
-    </script>
+    <script src="main.js"></script>
   </body>
 </html>
 
