@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Spotify queue</title>
+    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-firestore.js"></script>
+    <style type="text/css">
+      #login, #spotify_login, #loggedin, #create, #error {
+        display: none;
+      }
+      
+      .text-overflow {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        width: 500px;
+      }
+
+      body {
+        background-color:#343a40!important
+      }
+    </style>
+  </head>
+
+  <body class="bg-dark text-white">
+    <div class="container bg-dark text-white">
+      <div id="login" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+        <h2 style="color: antiquewhite;">Log in to your account</h2><br><br>
+        <h4 id="error" style="color: #C70039">Login failed!</h4>
+        <input class="form-control form-control-lg" id="username" type="text" name="user" placeholder="Username"><br>
+        <input class="form-control form-control-lg" id="password" type="password" name="pass" placeholder="Password"><br>
+        <a class="btn btn-success btn-lg" id="logged">Log in</a>
+        <h6 style="color: antiquewhite; font-size: larger;">or</h6>
+        <a class="btn btn-success btn-lg" id="new">Create account</a>
+      </div>
+
+      <div id="create" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+        <h2 style="color: antiquewhite;">Create account</h2><br><br>
+        <h4 id="createError" style="color: #C70039"></h4>
+        <input class="form-control form-control-lg" id="createUsername" type="text" name="user" placeholder="Username"><br>
+        <input class="form-control form-control-lg" id="createPassword" type="password" name="pass" placeholder="Password"><br>
+        <input class="form-control form-control-lg" id="confirmPassword" type="password" name="pass" placeholder="Confirm Password"><br>
+        <a class="btn btn-success btn-lg" id="sendUserPass">Create</a>
+      </div>
+
+      <div class="container" id="spotify_login">
+        <div class="row">
+          <h4 class="col-sm">Queue</h4>
+          <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+            <a class="btn btn-success btn-lg col-sm" id='load'>Log in with Spotify</a>
+          </div>
+        </div>
+      </div>
+      <div id="loggedin">
+        <div id="user-profile" style="display: none;">
+        </div>
+        <div id="oauth" style="display: none;">
+        </div>
+        <button class="btn btn-default text-center" id="obtain-new-token" style="display: none;">Obtain new token using the refresh token</button>
+        <h2 class="text-white text-center" style="padding-top: 10%; color: whitesmoke;">Spotify Queue</h2>
+        <div style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
+          
+          <div id="search">
+            </div>
+          <br>
+          <button class="btn btn-default" id="play-new" style="display: none;">Play a new song</button>
+        </div>
+      </div>
+    </div>
+
+    <script id="search-template" type="text/x-handlebars-template">
+      <dl class="dl-horizontal">
+          <input class="form-control form-control-lg" id="search_str" type="text" name="search" placeholder="Search for a song">
+          <p id="search_info"></p>
+      </dl>
+    </script>
+
+    <script id="user-profile-template" type="text/x-handlebars-template">
+      <h1>Logged in as {{display_name}}</h1>
+      <div class="media">
+        <div class="pull-left">
+          <img class="media-object" width="150" src="{{images.0.url}}" />
+        </div>
+        <div class="media-body">
+          <dl class="dl-horizontal">
+            <dt>Display name</dt><dd class="clearfix">{{display_name}}</dd>
+            <dt>Id</dt><dd>{{id}}</dd>
+            <dt>Email</dt><dd>{{email}}</dd>
+            <dt>Spotify URI</dt><dd><a href="{{external_urls.spotify}}">{{external_urls.spotify}}</a></dd>
+            <dt>Link</dt><dd><a href="{{href}}">{{href}}</a></dd>
+            <dt>Profile Image</dt><dd class="clearfix"><a href="{{images.0.url}}">{{images.0.url}}</a></dd>
+            <dt>Country</dt><dd>{{country}}</dd>
+          </dl>
+        </div>
+      </div>
+    </script>
+
+    <script id="oauth-template" type="text/x-handlebars-template">
+      <h2>oAuth info</h2>
+      <dl class="dl-horizontal">
+        <dt>Access token</dt><dd class="text-overflow">{{access_token}}</dd>
+        <dt>Refresh token</dt><dd class="text-overflow">{{refresh_token}}</dd>
+      </dl>
+    </script>
+
+    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+    <script src="main.js"></script>
+  </body>
+</html>
+
