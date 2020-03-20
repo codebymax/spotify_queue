@@ -182,7 +182,7 @@ var pastProgress = 0;
         }
         });
 
-        document.getElementById('obtain-new-token').addEventListener('click', function() {
+        document.getElementById('new-token').addEventListener('click', function() {
         $.ajax({
             url: '/refresh_token',
             data: {
