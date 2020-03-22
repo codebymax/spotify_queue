@@ -1,112 +1,115 @@
-<!doctype html>
+<!DOCTYPE html>
 <html>
-  <head>
-    <title>Spotify queue</title>
-    <link rel="stylesheet" href="//netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css">
-    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-firestore.js"></script>
-    <style type="text/css">
-      #login, #spotify_login, #loggedin, #create, #error {
-        display: none;
-      }
-      
-      .text-overflow {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        width: 500px;
-      }
+    <head>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/css/bootstrap.min.css" integrity="sha384-Vkoo8x4CGsO3+Hhxv8T/Q5PaXtkKtu6ug5TOeNV6gBiFeWPGFN9MuhOf23Q9Ifjh" crossorigin="anonymous">
+        <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-app.js"></script>
+        <script src="https://www.gstatic.com/firebasejs/6.2.4/firebase-firestore.js"></script>
+        <style type="text/css">
+            #create-account, #error, #main, #search-box, #connect-button {
+                display: none;
+            }
 
-      body {
-        background-color:#343a40!important
-      }
-    </style>
-  </head>
+            body, html {
+                height: 100%;
+                background-color: lightslategray !important;
+            }
 
-  <body class="bg-dark text-white">
-    <div class="container bg-dark text-white">
-      <div id="login" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
-        <h2 style="color: antiquewhite;">Log in to your account</h2><br><br>
-        <h4 id="error" style="color: #C70039">Login failed!</h4>
-        <input class="form-control form-control-lg" id="username" type="text" name="user" placeholder="Username"><br>
-        <input class="form-control form-control-lg" id="password" type="password" name="pass" placeholder="Password"><br>
-        <a class="btn btn-success btn-lg" id="logged">Log in</a>
-        <h6 style="color: antiquewhite; font-size: larger;">or</h6>
-        <a class="btn btn-success btn-lg" id="new">Create account</a>
-      </div>
+            li {
+                padding-top: 0.5rem;
+                padding-bottom: .5rem;
+            }
 
-      <div id="create" class="dl-horizontal bg-dark text-white" style="display: flex; flex-direction: column; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
-        <h2 style="color: antiquewhite;">Create account</h2><br><br>
-        <h4 id="createError" style="color: #C70039"></h4>
-        <input class="form-control form-control-lg" id="createUsername" type="text" name="user" placeholder="Username"><br>
-        <input class="form-control form-control-lg" id="createPassword" type="password" name="pass" placeholder="Password"><br>
-        <input class="form-control form-control-lg" id="confirmPassword" type="password" name="pass" placeholder="Confirm Password"><br>
-        <a class="btn btn-success btn-lg" id="sendUserPass">Create</a>
-      </div>
+            .jumbotron {
+                background-color: lightslategray !important;
+                color: mintcream;
+            }
 
-      <div class="container" id="spotify_login">
-        <div class="row">
-          <h4 class="col-sm">Queue</h4>
-          <div class="bg-dark text-white" style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
-            <a class="btn btn-success btn-lg col-sm" id='load'>Log in with Spotify</a>
+            .container{
+                width: 1025px;
+                padding: 2rem 1rem;
+                margin-bottom: 2rem;
+                border-radius: .3rem;
+                z-index: 1;
+            }
+
+            .vertical-center {
+                height: 100%;
+                width: 100%;
+
+                text-align: center;  /* align the inline(-block) elements horizontally */
+                font: 0/0 a;         /* remove the gap between inline(-block) elements */
+            }
+
+            .vertical-center:before {    /* create a full-height inline block pseudo=element */
+                content: ' ';
+                display: inline-block;
+                vertical-align: middle;  /* vertical alignment of the inline element */
+                height: 100%;
+            }
+
+            .vertical-center > .container {
+                max-width: 100%;
+                background-color: #343a40;
+
+                display: inline-block;
+                vertical-align: middle;  /* vertical alignment of the inline element */
+                font: 16px/1 "Helvetica Neue", Helvetica, Arial, sans-serif;        /* <-- reset the font property */
+            }
+        </style>
+    </head>
+    <body>
+      <div class="jumbotron vertical-center">
+        <div id="login" class="container text-center">
+          <h2 style="color: mintcream;">Log in to your account</h2><br><br>
+          <h4 id="error" style="color: #C70039">Login failed!</h4>
+          <input class="form-control form-control-lg" id="username" type="text" name="user" placeholder="Username"><br>
+          <input class="form-control form-control-lg" id="password" type="password" name="pass" placeholder="Password"><br>
+          <a class="btn btn-success btn-lg" id="log-in">Log in</a>
+          <h6 style="color: mintcream; font-size: larger;">or</h6>
+          <a class="btn btn-success btn-lg" id="new-account">Create account</a>
+        </div>
+
+        <div id="create-account" class="container text-center">
+          <h2 style="color: mintcream;">Create account</h2><br><br>
+          <h4 id="createError" style="color: #C70039"></h4>
+          <input class="form-control form-control-lg" id="createUsername" type="text" name="user" placeholder="Username"><br>
+          <input class="form-control form-control-lg" id="createPassword" type="password" name="pass" placeholder="Password"><br>
+          <input class="form-control form-control-lg" id="confirmPassword" type="password" name="pass" placeholder="Confirm Password"><br>
+          <a class="btn btn-success btn-lg" id="sendUserPass">Create</a>
+        </div>
+
+        <div id="main" class="container text-center">
+          <h1>Spotify Queue</h1><br>
+          <div class="row">
+            <div class="col-sm-4">
+              <h2>Songs</h2><br>
+              <ol>
+                <li>Kesha</li>
+                <li>Taylor Swift</li>
+                <li>Katy Perry</li>
+              </ol>
+            </div>
+
+            <div class="col-sm-2" style="padding-right:1rem; border-right: 1px solid #ccc;">
+            </div>
+
+            <div class="col-sm-6">
+              <div class="vertical-center">
+                <div id="connect-button" class="container">
+                  <a id="connect" class="btn btn-success btn-lg text-center">Connect Spotify</a>
+                </div>
+                <div id="search-box" class="container">
+                  <input class="form-control" id="search-str" type="text" name="search" placeholder="Search">
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
-      <div id="loggedin">
-        <div id="user-profile" style="display: none;">
-        </div>
-        <div id="oauth" style="display: none;">
-        </div>
-        <button class="btn btn-default text-center" id="obtain-new-token" style="display: none;">Obtain new token using the refresh token</button>
-        <h2 class="text-white text-center" style="padding-top: 10%; color: whitesmoke;">Spotify Queue</h2>
-        <div style="display: flex; justify-content: center; min-height: 100%; min-height: 100vh; align-items: center;">
-          
-          <div id="search">
-            </div>
-          <br>
-          <button class="btn btn-default" id="play-new" style="display: none;">Play a new song</button>
-        </div>
-      </div>
-    </div>
 
-    <script id="search-template" type="text/x-handlebars-template">
-      <dl class="dl-horizontal">
-          <input class="form-control form-control-lg" id="search_str" type="text" name="search" placeholder="Search for a song">
-          <p id="search_info"></p>
-      </dl>
-    </script>
-
-    <script id="user-profile-template" type="text/x-handlebars-template">
-      <h1>Logged in as {{display_name}}</h1>
-      <div class="media">
-        <div class="pull-left">
-          <img class="media-object" width="150" src="{{images.0.url}}" />
-        </div>
-        <div class="media-body">
-          <dl class="dl-horizontal">
-            <dt>Display name</dt><dd class="clearfix">{{display_name}}</dd>
-            <dt>Id</dt><dd>{{id}}</dd>
-            <dt>Email</dt><dd>{{email}}</dd>
-            <dt>Spotify URI</dt><dd><a href="{{external_urls.spotify}}">{{external_urls.spotify}}</a></dd>
-            <dt>Link</dt><dd><a href="{{href}}">{{href}}</a></dd>
-            <dt>Profile Image</dt><dd class="clearfix"><a href="{{images.0.url}}">{{images.0.url}}</a></dd>
-            <dt>Country</dt><dd>{{country}}</dd>
-          </dl>
-        </div>
-      </div>
-    </script>
-
-    <script id="oauth-template" type="text/x-handlebars-template">
-      <h2>oAuth info</h2>
-      <dl class="dl-horizontal">
-        <dt>Access token</dt><dd class="text-overflow">{{access_token}}</dd>
-        <dt>Refresh token</dt><dd class="text-overflow">{{refresh_token}}</dd>
-      </dl>
-    </script>
-
-    <script src="//cdnjs.cloudflare.com/ajax/libs/handlebars.js/2.0.0-alpha.1/handlebars.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
-    <script src="main.js"></script>
-  </body>
+        <script src="https://code.jquery.com/jquery-3.4.1.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.min.js" integrity="sha384-wfSDF2E50Y2D1uUdj0O3uMBJnjuUD4Ih7YwaYd1iqfktj0Uod8GCExl3Og8ifwB6" crossorigin="anonymous"></script>
+        <script src="main.js"></script>
+    </body>
 </html>
-

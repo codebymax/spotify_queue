@@ -27,34 +27,45 @@ var pastProgress = 0;
 
     var db = firebase.firestore();
 
-    document.getElementById('load').href = "/login?user=maw1"
-    document.getElementById('logged').onclick = function() {
+    document.getElementById('connect').href = "/login?user=maw1"
+
+    document.getElementById('log-in').onclick = function() {
         username = document.getElementById("username").value
         var password = document.getElementById("password").value
         let usersRef = db.collection('users')
         let usr = usersRef.doc(username).get()
         .then(function(documentSnapshot) {
             if(documentSnapshot.exists && documentSnapshot.data().password == password) {
-            auth_check = true
-            console.log("true")
-            $('#login').hide();
-            $('#spotify_login').show();
-            $('#loggedin').hide();
-            $('#error').hide();
-            $('#create').hide();
+                auth_check = true
+                console.log("true")
+                if(documentSnapshot.data().access_token != null) {
+                    access_token = documentSnapshot.data().access_token
+                    refresh_token = documentSnapshot.data().refresh_token
+                    $('#login').hide();
+                    $('#error').hide();
+                    document.getElementById("main").style.display = "inline-block";
+                    document.getElementById("search-box").style.display = "inline-block";
+                    $('#create-account').hide();
+                }
+                else {
+                    $('#login').hide();
+                    $('#error').hide();
+                    document.getElementById("main").style.display = "inline-block";
+                    document.getElementById("connect-button").style.display = "inline-block";
+                    $('#create-account').hide();
+                }
             }
             else {
-            $('#error').show()
+                $('#error').show()
             }
         })
     }
 
-    document.getElementById('new').onclick = function() {
-        $('#create').show();
+    document.getElementById('new-account').onclick = function() {
         $('#login').hide();
-        $('#spotify_login').hide();
-        $('#loggedin').hide();
         $('#error').hide();
+        $('#main').hide();
+        document.getElementById("create-account").style.display = "inline-block";
     }
 
     document.getElementById('sendUserPass').onclick = function() {
@@ -82,31 +93,19 @@ var pastProgress = 0;
                     })
                     .then(function() {
                     username = user
-                    $('#create').hide();
                     $('#login').hide();
-                    $('#spotify_login').show();
-                    $('#loggedin').hide();
                     $('#error').hide();
+                    document.getElementById("main").style.display = "inline-block";
+                    document.getElementById("connect-button").style.display = "inline-block";
+                    $('#create-account').hide();
                     })
                 }
             })
         }
         else {
-        document.getElementById('createError').innerHTML = "Passwords do not match"
+            document.getElementById('createError').innerHTML = "Passwords do not match"
         }
     }
-
-    var userProfileSource = document.getElementById('user-profile-template').innerHTML,
-        userProfileTemplate = Handlebars.compile(userProfileSource),
-        userProfilePlaceholder = document.getElementById('user-profile');
-
-    var oauthSource = document.getElementById('oauth-template').innerHTML,
-        oauthTemplate = Handlebars.compile(oauthSource),
-        oauthPlaceholder = document.getElementById('oauth');
-
-    var searchSource = document.getElementById('search-template').innerHTML,
-        searchTemplate = Handlebars.compile(searchSource),
-        searchPlaceholder = document.getElementById('search');
 
     var params = getHashParams();
 
@@ -122,38 +121,30 @@ var pastProgress = 0;
         console.log(access_token, auth_check)
         if (!access_token && !auth_check) {
             // render initial screen
-            $('#create').hide();
-            $('#login').show();
-            $('#spotify_login').hide();
-            $('#loggedin').hide();
+            document.getElementById("login").style.display = "inline-block";
+            $('#error').hide();
+            $('#main').hide();
+            $('#create-account').hide();
         }
         if(!access_token && auth_check) {
-            $('#create').hide();
             $('#login').hide();
-            $('#spotify_login').hide();
-            $('#loggedin').hide();
+            $('#error').hide();
+            $('#main').hide();
+            $('#create-account').hide();
         }
         else {
-            // render oauth info
-            oauthPlaceholder.innerHTML = oauthTemplate({
-                access_token: access_token,
-                refresh_token: refresh_token
-            });
-
-            searchPlaceholder.innerHTML = searchTemplate({ });
-
             $.ajax({
                 url: 'https://api.spotify.com/v1/me',
                 headers: {
                     'Authorization': 'Bearer ' + access_token
                 },
                 success: function(response) {
-                    userProfilePlaceholder.innerHTML = userProfileTemplate(response);
-
-                    $('#create').hide();
                     $('#login').hide();
-                    $('#spotify_login').hide();
-                    $('#loggedin').show();
+                    $('#error').hide();
+                    document.getElementById("main").style.display = "inline-block";
+                    $('#create-account').hide();
+                    $('#connect-button').hide();
+                    document.getElementById("search-box").style.display = "inline-block";
                     console.log(params)
                     let usersRef = db.collection('users')
                     usersRef.doc(username).get()
@@ -174,14 +165,23 @@ var pastProgress = 0;
             });
         }
 
-        document.getElementById("search_str")
+        document.getElementById("search-str")
         .addEventListener("keyup", function(event) {
-        event.preventDefault();
-        if (event.keyCode === 13) {
-            document.getElementById("play-new").click();
-        }
+            event.preventDefault();
+            if (event.keyCode === 13) {
+                var search_str = document.getElementById("search-str").value
+                document.getElementById("search-str").value = ""
+                var song_uri = 'null';
+                
+                $.ajax({
+                    url: '/search_song', //what part of the app to call 
+                    data: {
+                    'search_str': search_str
+                    }
+                });
+            }
         });
-
+/* Logic to get new access token. Will be useful later
         document.getElementById('new-token').addEventListener('click', function() {
         $.ajax({
             url: '/refresh_token',
@@ -196,18 +196,6 @@ var pastProgress = 0;
             });
         });
         }, false);
-
-        document.getElementById('play-new').addEventListener('click', function() {
-        var search_str = document.getElementById("search_str").value
-        document.getElementById("search_str").value = ""
-        var song_uri = 'null';
-        
-        $.ajax({
-            url: '/search_song', //what part of the app to call 
-            data: {
-            'search_str': search_str
-            }
-        });
-        }, false);
+*/
     }
 })();
