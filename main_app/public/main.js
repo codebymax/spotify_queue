@@ -218,25 +218,18 @@ var auth_check = false;
             event.preventDefault();
             if (event.keyCode === 13) {
                 var search_str = document.getElementById("search-str").value
-                var access_t;
-                let usersRef = db.collection('users')
-                usersRef.doc(user.username).get()
-                    .then(function(documentSnapshot) {
-                        access_t = documentSnapshot.data().access_token
-                    })
                 document.getElementById("search-str").value = ""
-                var song_uri = 'null';
                 
                 $.ajax({
                     url: '/search_song', //what part of the app to call 
                     data: {
                         'search_str': search_str,
-                        'access_token': access_t
+                        'access_token': user.access_token
                     }
                 }).done(function(data) {
-                    console.log(data.artist);
+                    console.log(data.artist[0].name);
                     console.log(data.name);
-                    console.log(data.album);
+                    console.log(data.album["name"]);
                 });
             }
         });
