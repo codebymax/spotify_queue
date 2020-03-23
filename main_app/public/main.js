@@ -1,6 +1,19 @@
-var username = "";
-var currentSong = 'Err';
-var pastProgress = 0;
+class User {
+    constructor() {
+        this.username = ""
+        this.access_token = ""
+        this.refresh_token = ""
+        this.context_uri = ""
+        this.currentSong = ""
+        this.counter = 0
+        this.pastProgress = 0
+        this.queued_up = false
+        this.song_queue = []
+    }
+}
+
+var user = new User();
+var auth_check = false;
 
 (function() {
     /**
@@ -17,7 +30,33 @@ var pastProgress = 0;
         }
         return hashParams;
     }
-    var auth_check = false
+
+    function getNewToken() {
+        $.ajax({
+            url: '/refresh_token',
+            data: {
+            'refresh_token': refresh_token
+            }
+        }).done(function(data) {
+            access_token = data.access_token;
+            console.log(data.access_token)
+            let usersRef = db.collection('users')
+            usersRef.doc(user.username).get()
+                .then(function(documentSnapshot) {
+                    usersRef.doc(user.username).set({
+                        access_token: access_token,
+                        context_uri: documentSnapshot.get("context_uri"),
+                        counter: documentSnapshot.get("counter"),
+                        currentSong: documentSnapshot.get("currentSong"),
+                        password: documentSnapshot.get("password"),
+                        pastProgress: documentSnapshot.get("pastProgress"),
+                        queued_up: documentSnapshot.get("queued_up"),
+                        refresh_token: refresh_token,
+                        song_queue: documentSnapshot.get("song_queue")
+                    })
+                })
+        });
+    }
 
     firebase.initializeApp({
         apiKey: 'AIzaSyA1F1_j8OXWo76RdO4rg9qCC0HF-n-Kg1A',
@@ -27,20 +66,31 @@ var pastProgress = 0;
 
     var db = firebase.firestore();
 
-    document.getElementById('connect').href = "/login?user=maw1"
+    document.getElementById("refresh").onclick = function() {
+        getNewToken()
+    }
 
     document.getElementById('log-in').onclick = function() {
-        username = document.getElementById("username").value
-        var password = document.getElementById("password").value
+        user.username = document.getElementById("username").value
+        let password = document.getElementById("password").value
         let usersRef = db.collection('users')
-        let usr = usersRef.doc(username).get()
+        let usr = usersRef.doc(user.username).get()
         .then(function(documentSnapshot) {
             if(documentSnapshot.exists && documentSnapshot.data().password == password) {
                 auth_check = true
-                console.log("true")
-                if(documentSnapshot.data().access_token != null) {
-                    access_token = documentSnapshot.data().access_token
-                    refresh_token = documentSnapshot.data().refresh_token
+                document.getElementById('connect').href = "/login?user=".concat(user.username)
+                console.log(user.username)
+                console.log(document.getElementById('connect').href)
+                user.access_token = documentSnapshot.data().access_token
+                user.refresh_token = documentSnapshot.data().refresh_token
+                user.context_uri = documentSnapshot.data().context_uri
+                user.currentSong = documentSnapshot.data().currentSong
+                user.counter = documentSnapshot.data().counter
+                user.pastProgress = documentSnapshot.data().pastProgress
+                user.queued_up = documentSnapshot.data().queued_up
+                user.song_queue = documentSnapshot.data().song_queue
+
+                if(documentSnapshot.data().access_token != "") {
                     $('#login').hide();
                     $('#error').hide();
                     document.getElementById("main").style.display = "inline-block";
@@ -70,17 +120,17 @@ var pastProgress = 0;
 
     document.getElementById('sendUserPass').onclick = function() {
         let usersRef = db.collection('users')
-        var user = document.getElementById('createUsername').value
+        user.username = document.getElementById('createUsername').value
         var pass = document.getElementById('createPassword').value
         var cPass = document.getElementById('confirmPassword').value
         if (pass == cPass) {
-            usersRef.doc(user).get()
+            usersRef.doc(user.username).get()
             .then(function(documentSnapshot) {
                 if(documentSnapshot.exists) {
                     document.getElementById('createError').innerHTML = "Username taken"
                 }
                 else {
-                    usersRef.doc(user).set({
+                    usersRef.doc(user.username).set({
                         access_token: "",
                         context_uri: "",
                         counter: 0,
@@ -92,7 +142,7 @@ var pastProgress = 0;
                         song_queue: []
                     })
                     .then(function() {
-                    username = user
+                    document.getElementById('connect').href = "/login?user=".concat(user.username)
                     $('#login').hide();
                     $('#error').hide();
                     document.getElementById("main").style.display = "inline-block";
@@ -113,12 +163,11 @@ var pastProgress = 0;
         refresh_token = params.refresh_token,
         error = params.error;
 
-    username = params.user
+    user.username = params.user
 
     if (error) {
         alert('There was an error during the authentication');
     } else {
-        console.log(access_token, auth_check)
         if (!access_token && !auth_check) {
             // render initial screen
             document.getElementById("login").style.display = "inline-block";
@@ -145,11 +194,10 @@ var pastProgress = 0;
                     $('#create-account').hide();
                     $('#connect-button').hide();
                     document.getElementById("search-box").style.display = "inline-block";
-                    console.log(params)
                     let usersRef = db.collection('users')
-                    usersRef.doc(username).get()
+                    usersRef.doc(user.username).get()
                         .then(function(documentSnapshot) {
-                            usersRef.doc(username).set({
+                            usersRef.doc(user.username).set({
                                 access_token: access_token,
                                 context_uri: documentSnapshot.get("context_uri"),
                                 counter: documentSnapshot.get("counter"),
@@ -170,32 +218,27 @@ var pastProgress = 0;
             event.preventDefault();
             if (event.keyCode === 13) {
                 var search_str = document.getElementById("search-str").value
+                var access_t;
+                let usersRef = db.collection('users')
+                usersRef.doc(user.username).get()
+                    .then(function(documentSnapshot) {
+                        access_t = documentSnapshot.data().access_token
+                    })
                 document.getElementById("search-str").value = ""
                 var song_uri = 'null';
                 
                 $.ajax({
                     url: '/search_song', //what part of the app to call 
                     data: {
-                    'search_str': search_str
+                        'search_str': search_str,
+                        'access_token': access_t
                     }
+                }).done(function(data) {
+                    console.log(data.artist);
+                    console.log(data.name);
+                    console.log(data.album);
                 });
             }
         });
-/* Logic to get new access token. Will be useful later
-        document.getElementById('new-token').addEventListener('click', function() {
-        $.ajax({
-            url: '/refresh_token',
-            data: {
-            'refresh_token': refresh_token
-            }
-        }).done(function(data) {
-            access_token = data.access_token;
-            oauthPlaceholder.innerHTML = oauthTemplate({
-            access_token: access_token,
-            refresh_token: refresh_token
-            });
-        });
-        }, false);
-*/
     }
 })();

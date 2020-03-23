@@ -393,10 +393,8 @@ app.get('/get_playing', function(req, res) {
  */
 app.get('/search_song', function(req, res) {
   // changing the song thats playing currently
-  
+  var access_t = req.query.access_token;
   var search_str = req.query.search_str;
-  console.log(access_token);
-  console.log(search_str);
   
   var spotifyApi = new SpotifyWebApi({
     clientId: client_id,
@@ -404,7 +402,7 @@ app.get('/search_song', function(req, res) {
     redirectUri: redirect_uri
   });
 
-  spotifyApi.setAccessToken(access_token);
+  spotifyApi.setAccessToken(access_t);
   
   spotifyApi.searchTracks(search_str, {limit: 1})
   .then(function(data) {
@@ -414,13 +412,19 @@ app.get('/search_song', function(req, res) {
     }
     else {
       var song_uri = data.body.tracks.items[0].uri;
+      var artist = data.body.tracks.items[0].artists;
+      var name = data.body.tracks.items[0].name;
+      var album = data.body.tracks.items[0].album;
       if( !queued_up ) { //if nothing has been queued yet, Put the program into queue mode
         queued_up = true;
       }
       song_queue.enqueue(song_uri);
       console.log('Uri: ', song_uri);
       res.send({
-        'song_uri': song_uri
+        'song_uri': song_uri,
+        'artist': artist,
+        'name': name,
+        'album': album
       });
     }
   }, function(err) {
