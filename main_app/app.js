@@ -55,16 +55,8 @@ admin.initializeApp({
   databaseURL: "https://alexaq.firebaseio.com"
 });
 
-var counter = 0;
-var currentSong = 'Err';
-var pastProgress = 0;
 var song_queue = new Queue();
 var user_queue = new Queue();
-var access_token = null;
-var refresh_token = null;
-var context_uri = null;
-var queued_up = false;
-var state = 0;
 
 /**
  * Generates a random string containing numbers and letters
@@ -88,10 +80,6 @@ var app = express();
 app.use(express.static(__dirname + '/public'))
    .use(cors())
    .use(cookieParser());
-
-app.get('/user_login', function(req, res) {
-
-});
 
 /**
  * Endpoint that is initially called by webpage upon clicking of the login button
@@ -233,6 +221,7 @@ app.get('/get_playing', function(req, res) {
   //get the current playing track and detect song change
   //this endpoint is hit every second
   counter++;
+  let access_t = req.query.access_token
 
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
@@ -432,21 +421,13 @@ app.get('/search_song', function(req, res) {
   });
 });
 
-// Listen to the specified port, or 8080 otherwise
+// Listen to the specified port, or 8888 otherwise
 const PORT = process.env.PORT || 8888;
 app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}...`);
 });
 
-//redirect_uri = url + ':' + PORT + '/callback';
-console.log(redirect_uri)
-//var checkSong = { url: 'http://localhost:8888/get_playing' };
 var checkSong = { url: url + '/get_playing' };
-var refreshJSON = { url: url + '/refresh_token', 
-                    body: { 
-                      'refresh_token': refresh_token
-                    }
-};
 
 function checkSongEnd() { 
   if(access_token != null) {
@@ -454,16 +435,4 @@ function checkSongEnd() {
   }
 }
 
-function refresh_key() {
-  if(access_token != null && counter > 10) {
-    console.log("Before: " + access_token)
-    request.get(refreshJSON, function(error, response, body) {
-      console.log("Refreshed" + err);
-      console.log("After: " + access_token);
-    });
-  }
-}
 setInterval(checkSongEnd, 1000); //checkSongEnd every second
-//setInterval(refresh_key, 60000)
-//setInterval(refresh_key, 60000); //refreshKey every 1 minutes
-//request.get(test_login)
