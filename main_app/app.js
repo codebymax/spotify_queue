@@ -1,6 +1,13 @@
 class Queue { //queue data structure used to store song uris
-  constructor() {
+  constructor(arr) {
+    if(arr === undefined)
       this.items = [];
+    else
+      this.items = arr;
+  }
+
+  getArr() {
+    return this.items;
   }
 
   //enqueue function
@@ -36,6 +43,8 @@ class Queue { //queue data structure used to store song uris
   }
 }
 
+var users = {}
+
 var express = require('express'); // Express web server framework
 var request = require('request'); // "Request" library
 var admin = require('firebase-admin'); //firebase-admin library
@@ -55,7 +64,8 @@ admin.initializeApp({
   databaseURL: "https://alexaq.firebaseio.com"
 });
 
-var song_queue = new Queue();
+let db = admin.firestore();
+
 var user_queue = new Queue();
 
 /**
@@ -86,36 +96,26 @@ app.use(express.static(__dirname + '/public'))
  */
 app.get('/login', function(req, res) {
   user_queue.enqueue(req.query.user);
-  if(access_token != null) {
-    res.redirect('/#' +
-      querystring.stringify({
-        access_token: access_token,
-        refresh_token: refresh_token
-      }));
-  }
-  else {
-    console.log('Login begin')
-    //console.log(res)
-    
-    var state = generateRandomString(16);
-    res.cookie(stateKey, state);
-    //console.log(state)
-    // your application requests authorization
-    var scope = 'user-library-read user-read-private user-read-email user-modify-playback-state user-read-playback-state';
-    res.redirect('https://accounts.spotify.com/authorize?' +
-      querystring.stringify({
-        response_type: 'code',
-        client_id: client_id,
-        scope: scope,
-        redirect_uri: redirect_uri,
-        state: state
-      }));
-    
-    var scopes = ['user-library-read', 'user-read-private', 
-      'user-read-email', 'user-modify-playback-state', 
-      'user-read-playback-state'];
-
-  }
+  console.log('Login begin')
+  //console.log(res)
+  
+  var state = generateRandomString(16);
+  res.cookie(stateKey, state);
+  //console.log(state)
+  // your application requests authorization
+  var scope = 'user-library-read user-read-private user-read-email user-modify-playback-state user-read-playback-state';
+  res.redirect('https://accounts.spotify.com/authorize?' +
+    querystring.stringify({
+      response_type: 'code',
+      client_id: client_id,
+      scope: scope,
+      redirect_uri: redirect_uri,
+      state: state
+    }));
+  
+  var scopes = ['user-library-read', 'user-read-private', 
+    'user-read-email', 'user-modify-playback-state', 
+    'user-read-playback-state'];
 });
 
 /**
@@ -220,8 +220,28 @@ app.get('/refresh_token', function(req, res) {
 app.get('/get_playing', function(req, res) {
   //get the current playing track and detect song change
   //this endpoint is hit every second
+  users[req.query.username] = {
+    "access_token": req.query.access_token,
+    "refresh_token": req.query.refresh_token,
+    "context_uri": req.query.context_uri,
+    "counter": req.query.counter,
+    "currentSong": req.query.currentSong,
+    "pastProgress": req.query.pastProgress,
+    "queued_up": req.query.queued_up,
+    "song_queue": req.query.song_queue
+  };
+
+  let username = req.query.username,
+      access_token = users[username]["access_token"],
+      refresh_token = users[username]["refresh_token"],
+      context_uri = users[username]["context_uri"],
+      counter = users[username]["counter"],
+      currentSong = users[username]["currentSong"],
+      pastProgress = users[username]["pastProgress"],
+      queued_up = users[username]["queued_up"],
+      song_queue = new Queue(users[username]["song_queue"]);
+
   counter++;
-  let access_t = req.query.access_token
 
   var playingOptions = {
     url: 'https://api.spotify.com/v1/me/player/currently-playing',
@@ -236,31 +256,32 @@ app.get('/get_playing', function(req, res) {
   };
 
   request.get(playingOptions, function(error, response, body) {
-    if( !error && response.statusCode === 204 ) {
-      state = 0; //no song playing
+    if( !error && response.statusCode === 204 ) { //Nothing playing
       console.log('Listen to something')
       res.send({
         'success': 'nothing playing'
       });
     }
-    else if (!error && response.statusCode === 200) {
-      state = 1; //there is a song playing but not queued
+    else if (!error && response.statusCode === 200) { //Playing
       var name = body.item.name;
       console.log(name + ' ' + body.progress_ms + ' ' + body.item.duration_ms)
       if( !queued_up && counter % 15 == 0 ) {
+        // This is where we save the current context the user is playing
         request.get(player, function(error, response, body) {
             if( body.context != null) {
               context_uri = body.context.uri;
             }
-            console.log(context_uri)
         })
       }
-      if( (name != currentSong && currentSong != 'Err') || (body.progress_ms == 0 && pastProgress > 0) ) {
+      // Now we check to see if the song is over
+      if( (name != currentSong && currentSong != '') || (body.progress_ms == 0 && pastProgress > 0) ) {
         console.log('Song end!');
-        currentSong = 'Err';
+        currentSong = '';
         pastProgress = body.progress_ms;
 
-        if(song_queue.isEmpty() && queued_up) {
+        // check to see if the queue is empty and switch to normal player
+        // this resets to the original context of the player
+        if(song_queue.isEmpty() && queued_up) { 
           queued_up = false;
           var shuffle = {
             url: 'https://api.spotify.com/v1/me/player/shuffle?state=true',
@@ -272,10 +293,10 @@ app.get('/get_playing', function(req, res) {
             if (!error && response.statusCode === 204) {
               console.log("Shuffled!");
               if( context_uri != null ) {
-                console.log(context_uri);
-                if(context_uri.includes('playlist')) {
+                
+                // if the original context was a playlist we reshuffle that playlist
+                if(context_uri.includes('playlist')) { 
                   var playlist_id = context_uri.substring(context_uri.lastIndexOf(':')+1);
-                  console.log(playlist_id);
                   var get_tracks = {
                     url: 'https://api.spotify.com/v1/playlists/' + playlist_id + '/tracks',
                     headers: { 'Authorization': 'Bearer ' + access_token },
@@ -284,6 +305,11 @@ app.get('/get_playing', function(req, res) {
 
                   request.get(get_tracks, function(error, response, body) {
                     if (!error && response.statusCode === 200) {
+                      //spotify doesn't let us just shuffle a playlist
+                      //so we have to make a workaround
+                      //here we count the songs in the playlist and pick a random index
+                      //then we start the playlist at the index with shuffle enabled
+
                       var num_songs = body.total;
                       var index = Math.floor(Math.random() * num_songs);
 
@@ -304,10 +330,26 @@ app.get('/get_playing', function(req, res) {
                         console.log(response.statusCode);
                         console.log("playback resumed")
                         queued_up = false;
+
+                        let data = {
+                          "access_token": access_token,
+                          "refresh_token": refresh_token,
+                          "context_uri": context_uri,
+                          "counter": counter,
+                          "currentSong": currentSong,
+                          "pastProgress": pastProgress,
+                          "queued_up": queued_up,
+                          "song_queue": song_queue.getArr()
+                        };
+
+                        users[username] = { data };
+
+                        db.collection('users').doc(username).set(data);
                       });
                     }
                   });
                 }
+                //if the user wasnt playing a playlist we can just resume playback normally
                 else {
                   var resume_playback = {
                     url: 'https://api.spotify.com/v1/me/player/play',
@@ -329,12 +371,13 @@ app.get('/get_playing', function(req, res) {
             }
           });
         }
+        //if there's stuff in the queue we want to pop it out and play it
         if(!song_queue.isEmpty()) {
           var nextOptions = {
             url: 'https://api.spotify.com/v1/me/player/play',
             headers: { 'Authorization': 'Bearer ' + access_token },
             body: {
-              "uris": [song_queue.dequeue()],
+              "uris": [song_queue.dequeue()['uri']],
               "offset": {
                 "position": 0
               },
@@ -347,18 +390,36 @@ app.get('/get_playing', function(req, res) {
             console.log(response.statusCode);
             if (!error && response.statusCode === 204) {
               var resp = "Change successful"
+
+              let data = {
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "context_uri": context_uri,
+                "counter": counter,
+                "currentSong": currentSong,
+                "pastProgress": pastProgress,
+                "queued_up": queued_up,
+                "song_queue": song_queue.getArr()
+              };
+
+              users[username] = { data };
+
+              db.collection('users').doc(username).set(data);
+
               res.send({
                 'success': resp
               });
             }
           });
         }
+        //if nothing is queued and we have not set queued_up to true. We do nothing!
         else {
           res.send({
             'success': 'smile and wave boys'
           });
         }
       }
+      //if the song is not over yet
       else {
         currentSong = name;
         pastProgress = body.progress_ms;
@@ -382,8 +443,35 @@ app.get('/get_playing', function(req, res) {
  */
 app.get('/search_song', function(req, res) {
   // changing the song thats playing currently
-  var access_t = req.query.access_token;
-  var search_str = req.query.search_str;
+  let newUser = false
+
+  if(!(req.query.username in users)) {
+    newUser = true
+  }
+  
+  users[req.query.username] = {
+    "access_token": req.query.access_token,
+    "refresh_token": req.query.refresh_token,
+    "context_uri": req.query.context_uri,
+    "counter": req.query.counter,
+    "currentSong": req.query.currentSong,
+    "pastProgress": req.query.pastProgress,
+    "password": req.query.password,
+    "queued_up": req.query.queued_up,
+    "song_queue": req.query.song_queue
+  };
+
+  let username = req.query.username,
+      search_str = req.query.search_str,
+      access_token = users[username]["access_token"],
+      refresh_token = users[username]["refresh_token"],
+      context_uri = users[username]["context_uri"],
+      counter = users[username]["counter"],
+      currentSong = users[username]["currentSong"],
+      pastProgress = users[username]["pastProgress"],
+      password = users[username]["password"],
+      queued_up = users[username]["queued_up"],
+      song_queue = new Queue(users[username]["song_queue"]);
   
   var spotifyApi = new SpotifyWebApi({
     clientId: client_id,
@@ -391,8 +479,8 @@ app.get('/search_song', function(req, res) {
     redirectUri: redirect_uri
   });
 
-  spotifyApi.setAccessToken(access_t);
-  
+  spotifyApi.setAccessToken(access_token);
+
   spotifyApi.searchTracks(search_str, {limit: 1})
   .then(function(data) {
     console.log(data.body);
@@ -401,14 +489,41 @@ app.get('/search_song', function(req, res) {
     }
     else {
       var song_uri = data.body.tracks.items[0].uri;
-      var artist = data.body.tracks.items[0].artists;
+      var artist = data.body.tracks.items[0].artists[0].name;
       var name = data.body.tracks.items[0].name;
-      var album = data.body.tracks.items[0].album;
-      if( !queued_up ) { //if nothing has been queued yet, Put the program into queue mode
-        queued_up = true;
-      }
-      song_queue.enqueue(song_uri);
+      var album = data.body.tracks.items[0].album["name"];
+
+      queued_up = true;
+
+      song_queue.enqueue({
+        'uri': song_uri,
+        'name': name,
+        'album': album,
+        'artist': artist
+      });
+
       console.log('Uri: ', song_uri);
+
+      let new_data = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "context_uri": context_uri,
+        "counter": counter,
+        "currentSong": currentSong,
+        "pastProgress": pastProgress,
+        "password": password,
+        "queued_up": queued_up,
+        "song_queue": song_queue.getArr()
+      };
+
+      users[username] = { new_data };
+
+      db.collection('users').doc(username).set(new_data);
+
+      if(newUser) {
+        setInterval( function() { checkSongEnd(username); }, 1000);
+      }
+
       res.send({
         'song_uri': song_uri,
         'artist': artist,
@@ -427,12 +542,22 @@ app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}...`);
 });
 
-var checkSong = { url: url + '/get_playing' };
-
-function checkSongEnd() { 
-  if(access_token != null) {
-    request.get(checkSong);
+function checkSongEnd(username) { 
+  console.log("check")
+  if(users[username]["access_token"] != "") {
+    request.get({ 
+      url: url + '/get_playing',
+      data: {
+        'access_token': users[username]["access_token"],
+        'username': users[username]["username"],
+        'context_uri': users[username]["context_uri"],
+        'currentSong': users[username]["currentSong"],
+        'pastProgress': users[username]["pastProgress"],
+        'password': users[username]["password"],
+        'queued_up': users[username]["queued_up"],
+        'refresh_token': users[username]["refresh_token"],
+        'song_queue': users[username]["song_queue"]
+      }
+    });
   }
 }
-
-setInterval(checkSongEnd, 1000); //checkSongEnd every second

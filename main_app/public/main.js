@@ -7,6 +7,7 @@ class User {
         this.currentSong = ""
         this.counter = 0
         this.pastProgress = 0
+        this.password = ""
         this.queued_up = false
         this.song_queue = []
     }
@@ -35,23 +36,23 @@ var auth_check = false;
         $.ajax({
             url: '/refresh_token',
             data: {
-            'refresh_token': refresh_token
+            'refresh_token': user.refresh_token
             }
         }).done(function(data) {
-            access_token = data.access_token;
+            user.access_token = data.access_token;
             console.log(data.access_token)
             let usersRef = db.collection('users')
             usersRef.doc(user.username).get()
                 .then(function(documentSnapshot) {
                     usersRef.doc(user.username).set({
-                        access_token: access_token,
+                        access_token: user.access_token,
                         context_uri: documentSnapshot.get("context_uri"),
                         counter: documentSnapshot.get("counter"),
                         currentSong: documentSnapshot.get("currentSong"),
                         password: documentSnapshot.get("password"),
                         pastProgress: documentSnapshot.get("pastProgress"),
                         queued_up: documentSnapshot.get("queued_up"),
-                        refresh_token: refresh_token,
+                        refresh_token: user.refresh_token,
                         song_queue: documentSnapshot.get("song_queue")
                     })
                 })
@@ -87,6 +88,7 @@ var auth_check = false;
                 user.currentSong = documentSnapshot.data().currentSong
                 user.counter = documentSnapshot.data().counter
                 user.pastProgress = documentSnapshot.data().pastProgress
+                user.password = documentSnapshot.data().password
                 user.queued_up = documentSnapshot.data().queued_up
                 user.song_queue = documentSnapshot.data().song_queue
 
@@ -142,12 +144,22 @@ var auth_check = false;
                         song_queue: []
                     })
                     .then(function() {
-                    document.getElementById('connect').href = "/login?user=".concat(user.username)
-                    $('#login').hide();
-                    $('#error').hide();
-                    document.getElementById("main").style.display = "inline-block";
-                    document.getElementById("connect-button").style.display = "inline-block";
-                    $('#create-account').hide();
+                        user.access_token = ""
+                        user.refresh_token = ""
+                        user.context_uri = ""
+                        user.currentSong = ""
+                        user.counter = 0
+                        user.pastProgress = 0
+                        user.password = pass
+                        user.queued_up = false
+                        user.song_queue = []
+
+                        document.getElementById('connect').href = "/login?user=".concat(user.username)
+                        $('#login').hide();
+                        $('#error').hide();
+                        document.getElementById("main").style.display = "inline-block";
+                        document.getElementById("connect-button").style.display = "inline-block";
+                        $('#create-account').hide();
                     })
                 }
             })
@@ -219,17 +231,27 @@ var auth_check = false;
             if (event.keyCode === 13) {
                 var search_str = document.getElementById("search-str").value
                 document.getElementById("search-str").value = ""
-                
+                console.log(search_str)
                 $.ajax({
                     url: '/search_song', //what part of the app to call 
                     data: {
                         'search_str': search_str,
-                        'access_token': user.access_token
+                        'access_token': user.access_token,
+                        'username': user.username,
+                        'context_uri': user.context_uri,
+                        'counter': user.counter,
+                        'currentSong': user.currentSong,
+                        'pastProgress': user.pastProgress,
+                        'password': user.password,
+                        'queued_up': user.queued_up,
+                        'refresh_token': user.refresh_token,
+                        'song_queue': user.song_queue
                     }
                 }).done(function(data) {
-                    console.log(data.artist[0].name);
+                    console.log(data.error);
+                    console.log(data.artist);
                     console.log(data.name);
-                    console.log(data.album["name"]);
+                    console.log(data.album);
                 });
             }
         });
