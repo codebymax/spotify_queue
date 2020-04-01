@@ -214,10 +214,6 @@ app.get('/refresh_token', function(req, res) {
   });
 });
 
-app.get('/get_play', function(req, res) {
-  count += 1;
-  console.log(count)
-});
 /**
  * Primary endpoint for the app.
  * Checks the current playing song
@@ -453,7 +449,7 @@ app.get('/search_song', function(req, res) {
   if(!(req.query.username in users)) {
     newUser = true
   }
-
+  
   users[req.query.username] = {
     "access_token": req.query.access_token,
     "refresh_token": req.query.refresh_token,
@@ -521,12 +517,12 @@ app.get('/search_song', function(req, res) {
         "song_queue": song_queue.getArr()
       };
 
-      users[username] = { new_data };
+      users[username] = new_data;
 
       db.collection('users').doc(username).set(new_data);
 
       if(newUser) {
-        setInterval( function() { checkSongEnd(username); }, 1000);
+        setInterval( function() { checkSongEnd(username); }, 2000);
       }
 
       res.send({
@@ -547,33 +543,14 @@ app.listen(PORT, () => {
   console.log(`Server listening on port ${PORT}...`);
 });
 
-// function checkSongEnd(username) { 
-//   if(users[username]["access_token"] != "") {
-//     request.get({ 
-//       url: url + '/get_play',
-//       data: {
-//         'access_token': users[username]["access_token"],
-//         'username': users[username]["username"],
-//         'context_uri': users[username]["context_uri"],
-//         'currentSong': users[username]["currentSong"],
-//         'pastProgress': users[username]["pastProgress"],
-//         'password': users[username]["password"],
-//         'queued_up': users[username]["queued_up"],
-//         'refresh_token': users[username]["refresh_token"],
-//         'song_queue': users[username]["song_queue"]
-//       }
-//     });
-//   }
-// }
-
 function checkSongEnd(username) {
-  console.log('hmmm')
   let access_token = users[username]["access_token"],
       refresh_token = users[username]["refresh_token"],
       context_uri = users[username]["context_uri"],
       counter = users[username]["counter"],
       currentSong = users[username]["currentSong"],
       pastProgress = users[username]["pastProgress"],
+      password = users[username]["password"]
       queued_up = users[username]["queued_up"],
       song_queue = new Queue(users[username]["song_queue"]);
 
@@ -594,7 +571,6 @@ function checkSongEnd(username) {
   request.get(playingOptions, function(error, response, body) {
     if( !error && response.statusCode === 204 ) { //Nothing playing
       console.log('Listen to something')
-      console.log("nothing playing")
     }
     else if (!error && response.statusCode === 200) { //Playing
       var name = body.item.name;
@@ -672,11 +648,12 @@ function checkSongEnd(username) {
                           "counter": counter,
                           "currentSong": currentSong,
                           "pastProgress": pastProgress,
+                          "password": password,
                           "queued_up": queued_up,
                           "song_queue": song_queue.getArr()
                         };
 
-                        users[username] = { data };
+                        users[username] = data;
 
                         db.collection('users').doc(username).set(data);
                       });
@@ -732,11 +709,12 @@ function checkSongEnd(username) {
                 "counter": counter,
                 "currentSong": currentSong,
                 "pastProgress": pastProgress,
+                "password": password,
                 "queued_up": queued_up,
                 "song_queue": song_queue.getArr()
               };
 
-              users[username] = { data };
+              users[username] = data;
 
               db.collection('users').doc(username).set(data);
 
@@ -753,6 +731,20 @@ function checkSongEnd(username) {
       else {
         currentSong = name;
         pastProgress = body.progress_ms;
+
+        let data = {
+          "access_token": access_token,
+          "refresh_token": refresh_token,
+          "context_uri": context_uri,
+          "counter": counter,
+          "currentSong": currentSong,
+          "pastProgress": pastProgress,
+          "password": password,
+          "queued_up": queued_up,
+          "song_queue": song_queue.getArr()
+        };
+
+        users[username] = data;
 
         console.log('song not over')
       }
