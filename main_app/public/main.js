@@ -232,27 +232,44 @@ var auth_check = false;
                 var search_str = document.getElementById("search-str").value
                 document.getElementById("search-str").value = ""
                 console.log(search_str)
-                $.ajax({
-                    url: '/search_song', //what part of the app to call 
-                    data: {
-                        'search_str': search_str,
-                        'access_token': user.access_token,
-                        'username': user.username,
-                        'context_uri': user.context_uri,
-                        'counter': user.counter,
-                        'currentSong': user.currentSong,
-                        'pastProgress': user.pastProgress,
-                        'password': user.password,
-                        'queued_up': user.queued_up,
-                        'refresh_token': user.refresh_token,
-                        'song_queue': user.song_queue
-                    }
-                }).done(function(data) {
-                    console.log(data.error);
-                    console.log(data.artist);
-                    console.log(data.name);
-                    console.log(data.album);
-                });
+                let usersRef = db.collection('users')
+                usersRef.doc(user.username).get()
+                    .then(function(documentSnapshot) {
+                        if(documentSnapshot.exists) {
+                            user.access_token = documentSnapshot.data().access_token
+                            user.refresh_token = documentSnapshot.data().refresh_token
+                            user.context_uri = documentSnapshot.data().context_uri
+                            user.currentSong = documentSnapshot.data().currentSong
+                            user.counter = documentSnapshot.data().counter
+                            user.pastProgress = documentSnapshot.data().pastProgress
+                            user.password = documentSnapshot.data().password
+                            user.queued_up = documentSnapshot.data().queued_up
+                            user.song_queue = documentSnapshot.data().song_queue
+                            
+                            $.ajax({
+                                url: '/search_song', //what part of the app to call 
+                                data: {
+                                    'search_str': search_str,
+                                    'access_token': user.access_token,
+                                    'username': user.username,
+                                    'context_uri': user.context_uri,
+                                    'counter': user.counter,
+                                    'currentSong': user.currentSong,
+                                    'pastProgress': user.pastProgress,
+                                    'password': user.password,
+                                    'queued_up': user.queued_up,
+                                    'refresh_token': user.refresh_token,
+                                    'song_queue': user.song_queue
+                                }
+                            }).done(function(data) {
+                                console.log(data.error);
+                                console.log(data.artist);
+                                console.log(data.name);
+                                console.log(data.album);
+                            });
+                        }
+                    })
+                
             }
         });
     }
