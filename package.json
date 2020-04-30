@@ -12,7 +12,7 @@
     "cors": "^2.8.5",
     "express": "~4.17.1",
     "firebase-admin": "^8.10.0",
-    "jquery": "^3.4.1",
+    "jquery": "^3.5.0",
     "passport": "^0.4.1",
     "passport-github": "^1.1.0",
     "passport-spotify": "^1.1.0",
