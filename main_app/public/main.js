@@ -93,11 +93,30 @@ var auth_check = false;
                 user.song_queue = documentSnapshot.data().song_queue
 
                 if(documentSnapshot.data().access_token != "") {
+                    getNewToken()
                     $('#login').hide();
                     $('#error').hide();
                     document.getElementById("main").style.display = "inline-block";
                     document.getElementById("search-box").style.display = "inline-block";
                     $('#create-account').hide();
+
+                    $.ajax({
+                        url: '/startMain', //what part of the app to call 
+                        data: {
+                            'access_token': user.access_token,
+                            'username': user.username,
+                            'context_uri': user.context_uri,
+                            'counter': user.counter,
+                            'currentSong': user.currentSong,
+                            'pastProgress': user.pastProgress,
+                            'password': user.password,
+                            'queued_up': user.queued_up,
+                            'refresh_token': user.refresh_token,
+                            'song_queue': user.song_queue
+                        }
+                    }).done(function(data) {
+                        console.log(data.response)
+                    });
                 }
                 else {
                     $('#login').hide();
