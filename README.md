@@ -14,4 +14,6 @@ Stored in this repo is the node.js app that runs on a Google Cloud Platform serv
 
 # Using the app:
 
-In it's current state the app can only serve the queue of one user. That means that a user must host it themselves. Assuming your Spotify Developer account is already setup and you have a client id and client secret, all you need to change is the client_id, client_secret and url in the app.js file. Then run the node.js app either locally or on a hosted platform and go to the url in your browser. Click the login button and you will be prompted to login to your spotify account. Once logged in, type your search string into the box and press enter. The top result will be added to the queue. 
+In it's current state the app can handle multiple users in a browser. Click the login button and you will be prompted to login to your spotify account. Once logged in, type your search string into the box and press enter. The top result will be added to the queue. 
+
+Amazon Alexa support may be coming in the future, but Amazon's authentication makes things difficult for multiple users to use the app at once.
